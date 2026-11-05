@@ -1,0 +1,25 @@
+# {{PRODUCT_NAME}} — HTTP API contract
+#
+# Single source of truth for the HTTP API exposed by the backend and consumed by
+# the client surfaces in {{SURFACES}}.
+#
+# When adding endpoints:
+# - Group by feature (one tag per feature).
+# - Keep request/response shapes aligned with each feature's `data-model.md`
+#   and `api-contract.md`. If they conflict, this file wins.
+# - Reference this file from feature `api-contract.md` documents.
+
+openapi: 3.1.0
+info:
+  title: {{PRODUCT_NAME}} API
+  version: 0.1.0
+  description: |
+    HTTP API contract for the {{PRODUCT_NAME}} platform. This document is the
+    single source of truth; feature-level `api-contract.md` documents must
+    align with it.
+servers: []
+tags: []
+paths: {}
+components:
+  schemas: {}
+  securitySchemes: {}

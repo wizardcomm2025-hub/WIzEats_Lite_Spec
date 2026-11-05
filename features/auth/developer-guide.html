@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign-in &amp; PIN — developer guide</title>
+<style>
+  :root {
+    --bg: #fafaf7; --panel: #ffffff; --panel-alt: #f4f3ee; --text: #1a1a1a; --text-muted: #5b5b5b;
+    --accent: #2b5a8c; --accent-soft: #e6effa; --warn: #8a4b0a; --warn-soft: #fdf1e1;
+    --rule: #d8d4c8; --code-bg: #f3f1ea; --code-text: #2b2b2b;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15181c; --panel: #1d2126; --panel-alt: #232830; --text: #e8e6e1; --text-muted: #a5a39b;
+      --accent: #82b1e0; --accent-soft: #1f2c3a; --warn: #e6b27a; --warn-soft: #2e2418;
+      --rule: #2d333c; --code-bg: #11141a; --code-text: #d8d6cf;
+      --shadow: 0 1px 3px rgba(0,0,0,0.4), 0 4px 12px rgba(0,0,0,0.25);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 16px; line-height: 1.6; }
+  .page { max-width: 880px; margin: 0 auto; padding: 48px 16px 96px; }
+  header.hero { border-bottom: 1px solid var(--rule); padding-bottom: 32px; margin-bottom: 40px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.08em; font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 12px; }
+  h1 { font-size: 34px; line-height: 1.15; margin: 0 0 12px; }
+  .lede { font-size: 18px; color: var(--text-muted); max-width: 64ch; margin: 0; }
+  h2 { font-size: 22px; margin: 48px 0 16px; }
+  h3 { font-size: 16px; margin: 0 0 8px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code { font-family: ui-monospace, Consolas, monospace; background: var(--code-bg); color: var(--code-text); padding: 1px 5px; border-radius: 3px; font-size: 0.92em; overflow-wrap: anywhere; }
+  .card { background: var(--panel); border: 1px solid var(--rule); border-left: 4px solid var(--accent); border-radius: 8px; padding: 14px 18px; margin: 0 0 14px; box-shadow: var(--shadow); }
+  .card.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+  .card p, .card ul { margin: 0; color: var(--text-muted); font-size: 15px; }
+  .card ul { padding-left: 20px; }
+  .meta { margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--rule); font-size: 13px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <div class="eyebrow">Feature developer guide · AUTH</div>
+      <h1>Sign-in &amp; PIN</h1>
+      <p class="lede">How owners, waiters and chefs get into the POS app: phone number, 6-digit PIN, a session token that lasts until logout, and an e-mailed reset when the PIN is forgotten.</p>
+    </header>
+
+    <h2>v1 scope</h2>
+    <p>Seven use cases: check a phone, sign in with PIN, reset a forgotten PIN, change PIN, log out, resume or end a session, and the legacy OTP / register endpoints. See the <a href="./README.md">README</a>. This spec records <strong>today's behaviour</strong> — decisions AUTH-D1 to D10 keep the current rules on purpose; AUTH-D11 is the one change to build.</p>
+
+    <h2>How it works end-to-end</h2>
+    <p>The app calls <code>checkPhone</code>; a known number moves to the PIN step, a new one goes to onboarding. <code>loginPin</code> checks status and PIN and creates a Sanctum token. The app stores it and routes by approval, <code>mustChangePin</code> and role. Every later call carries the token; <code>RestaurantTenantMiddleware</code> binds the user's restaurant. <code>logout</code> deletes that token; a 401 on any non-auth call makes the app sign out locally.</p>
+
+    <h2>What matters where you sit</h2>
+
+    <div class="card"><h3>POS API</h3><ul>
+      <li>Routes in <code>routes/api.php</code> under <code>auth</code>; services <code>PinService</code>, <code>OtpService</code>, <code>AuthService</code>.</li>
+      <li>PIN endpoints answer with <code>success</code>, not <code>status</code>.</li>
+      <li>Rate limits: <code>checkPhone</code>, <code>loginPin</code>, <code>forgotPin</code> only. <code>changePin</code> and the legacy endpoints have none.</li>
+      <li>No role checks anywhere in AUTH.</li>
+    </ul></div>
+    <div class="card"><h3>Data — MySQL</h3><ul>
+      <li><code>users.phone</code> is unique across all restaurants. <code>pin</code> is hashed by the model cast.</li>
+      <li>Tokens: <code>personal_access_tokens</code>, never expire, one per sign-in.</li>
+      <li>Reset sends the mail first, then replaces the PIN.</li>
+    </ul></div>
+    <div class="card"><h3>POS app</h3><ul>
+      <li><code>PhoneLoginScreen</code> (phone and PIN steps), <code>ChangePinScreen</code>, <code>LogoutDialogs</code>.</li>
+      <li><code>RootNavigator</code> picks Auth / Pending / Change PIN / Main.</li>
+      <li>The axios interceptor ends the session on 401 except for <code>/auth/</code> URLs.</li>
+    </ul></div>
+    <div class="card"><h3>Super-admin panel</h3><p>Not touched. Approval and user on/off decided there change what AUTH shows (ONB, ADM).</p></div>
+    <div class="card"><h3>Integrations</h3><p>E-mail <code>PinMail</code> to the restaurant's address for resets. Errors go to the Google Sheets error log.</p></div>
+
+    <div class="card warn"><h3>Accepted risks (do not "fix" without a new decision)</h3><ul>
+      <li>AUTH-D1: legacy <code>verifyOtp</code> accepts <code>123456</code> for any phone, no rate limit.</li>
+      <li>AUTH-D2: switching off a user or restaurant only blocks the next PIN sign-in.</li>
+      <li>AUTH-D3: tokens never expire.</li>
+      <li>AUTH-D4: PIN change / reset leaves other devices signed in.</li>
+      <li>AUTH-D5: 500 responses may carry exception text.</li>
+      <li>AUTH-D6: anyone who knows a number can trigger Forgot PIN; it also works for switched-off users.</li>
+      <li>AUTH-D7: <code>changePin</code> has no rate limit.</li>
+      <li>AUTH-D8: the API reveals whether a phone is registered.</li>
+    </ul></div>
+
+    <div class="card"><h3>The one change to build</h3><p>AUTH-D11: legacy <code>register</code> must create the restaurant and its owner together or not at all. Two parallel calls with the same new phone give one <code>type: "register"</code> and one <code>type: "verify"</code> for the same user — never a 500, never an empty restaurant. Test: <code>AUTH-07-D18</code>.</p></div>
+
+    <div class="meta">
+      <p>Summary only — the formal specs win if they disagree: <a href="./README.md">README.md</a> · <a href="./api-contract.md">api-contract.md</a> · <a href="./data-model.md">data-model.md</a> · <a href="./ui-ux.md">ui-ux.md</a> · <a href="./test-cases/README.md">test cases</a></p>
+    </div>
+  </main>
+</body>
+</html>

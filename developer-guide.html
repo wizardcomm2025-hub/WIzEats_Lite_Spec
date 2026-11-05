@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Developer guide — WhizEats POS Lite App-Specs</title>
+<style>
+  :root {
+    --bg: #fafaf7;
+    --panel: #ffffff;
+    --panel-alt: #f4f3ee;
+    --text: #1a1a1a;
+    --text-muted: #5b5b5b;
+    --accent: #2b5a8c;
+    --accent-soft: #e6effa;
+    --warn: #8a4b0a;
+    --warn-soft: #fdf1e1;
+    --rule: #d8d4c8;
+    --code-bg: #f3f1ea;
+    --code-text: #2b2b2b;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15181c;
+      --panel: #1d2126;
+      --panel-alt: #232830;
+      --text: #e8e6e1;
+      --text-muted: #a5a39b;
+      --accent: #82b1e0;
+      --accent-soft: #1f2c3a;
+      --warn: #e6b27a;
+      --warn-soft: #2e2418;
+      --rule: #2d333c;
+      --code-bg: #11141a;
+      --code-text: #d8d6cf;
+      --shadow: 0 1px 3px rgba(0,0,0,0.4), 0 4px 12px rgba(0,0,0,0.25);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  .page {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 48px 32px 96px;
+  }
+  header.hero {
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 32px;
+    margin-bottom: 40px;
+  }
+  .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-size: 38px;
+    line-height: 1.15;
+    margin: 0 0 12px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .lede {
+    font-size: 18px;
+    color: var(--text-muted);
+    max-width: 64ch;
+    margin: 0;
+  }
+  h2 {
+    font-size: 22px;
+    margin: 48px 0 16px;
+    font-weight: 700;
+    letter-spacing: -0.005em;
+  }
+  h3 {
+    font-size: 16px;
+    margin: 0 0 8px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+  p { margin: 0 0 16px; }
+  p + p { margin-top: 0; }
+  a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 120ms ease; }
+  a:hover { border-bottom-color: var(--accent); }
+  code {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.92em;
+  }
+  pre {
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 18px 20px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 14px;
+    line-height: 1.55;
+    box-shadow: var(--shadow);
+    margin: 0 0 24px;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; }
+
+  .tree {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 20px 24px;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13.5px;
+    line-height: 1.7;
+    color: var(--text);
+    box-shadow: var(--shadow);
+    overflow-x: auto;
+    margin: 0 0 28px;
+  }
+  .tree .dim { color: var(--text-muted); }
+  .tree .arrow { color: var(--accent); }
+  .tree .file { color: var(--text); }
+  .tree .dir  { color: var(--text); font-weight: 600; }
+
+  .steps {
+    list-style: none;
+    counter-reset: step;
+    padding: 0;
+    margin: 0 0 32px;
+    display: grid;
+    gap: 12px;
+  }
+  .steps li {
+    counter-increment: step;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 16px 18px 16px 64px;
+    position: relative;
+    box-shadow: var(--shadow);
+  }
+  .steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 18px;
+    top: 14px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 14px;
+    display: grid;
+    place-items: center;
+  }
+  .steps li .step-title {
+    font-weight: 600;
+    display: block;
+    margin-bottom: 4px;
+  }
+  .steps li .step-desc {
+    color: var(--text-muted);
+    font-size: 14.5px;
+  }
+
+  .rules {
+    display: grid;
+    gap: 14px;
+    margin: 0 0 28px;
+  }
+  .rule {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--accent);
+    border-radius: 8px;
+    padding: 14px 18px;
+    box-shadow: var(--shadow);
+  }
+  .rule.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+  .rule h3 {
+    color: var(--text);
+    margin-bottom: 6px;
+    font-size: 15px;
+  }
+  .rule p { color: var(--text-muted); font-size: 14.5px; margin: 0; }
+
+  .callout {
+    background: var(--accent-soft);
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin: 0 0 28px;
+    font-size: 15px;
+    color: var(--text);
+  }
+  .callout strong { color: var(--accent); }
+
+  .meta {
+    margin-top: 56px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule);
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .meta a { color: var(--text-muted); border-bottom: 1px dotted var(--rule); }
+  .meta a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .placeholder {
+    background: var(--warn-soft);
+    color: var(--warn);
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.9em;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <div class="eyebrow">Developer guide</div>
+      <h1>The 5-minute version</h1>
+      <p class="lede">
+        A short orientation for engineers picking up work against this repo. Read
+        <a href="./project-overview.md"><code>project-overview.md</code></a> and
+        <a href="./conventions.md"><code>conventions.md</code></a> for the full picture; this is the fast pass.
+      </p>
+    </header>
+
+    <div class="callout">
+      <strong>Looking for a specific feature?</strong> Each <code>features/&lt;feature&gt;/</code> directory has its
+      own <code>developer-guide.html</code> with a plain-language overview and per-surface key points. Open it in a
+      browser, then read this page after for the repo-wide rules.
+    </div>
+
+    <div class="callout">
+      <strong>Before there's a spec — <code>intake/</code>.</strong> Features in discovery don't live under
+      <code>features/</code> yet. The <a href="./intake/README.md"><code>intake/</code></a> folder is where
+      interview Q&amp;A (from the <a href="./.claude/skills/spec-intake/SKILL.md"><code>spec-intake</code></a>
+      skill) and client-provided business rules accumulate before formal specs are written. Read its README
+      if you're starting a new feature; ignore the folder once you're picking up a ticket against an existing one.
+    </div>
+
+    <h2>How the specs work</h2>
+    <p>
+      This folder is the <strong>single source of truth for what WhizEats POS Lite does</strong> across the
+      Laravel POS API, the MySQL database, the React Native POS app and the super-admin web panel. There is no code here — only
+      specifications, API contracts, data models, UI/UX notes, test cases and architectural decisions. If you're implementing, you're
+      working in <code>laravel-pos-api-dev_guid</code> or <code>POS_APP-master</code>, both reading these specs at
+      <code>../App-Specs/</code>. Plans, task status and test results live in <code>laravel-pos-api-dev_guid/specs/&lt;feature&gt;/</code>.
+    </p>
+
+    <h2>The mental model</h2>
+    <p>
+      Think of a feature as a <strong>vertical slice</strong> of behaviour, sliced again into <strong>use-cases</strong>.
+      Each use-case is one user-observable behaviour — UI, API call, backend handler, data write — captured
+      in a single file you can read end-to-end without jumping around.
+    </p>
+
+    <div class="tree">
+<span class="dir">features/&lt;feature-name&gt;/</span>
+├── <span class="file">README.md</span>            <span class="arrow">←</span> <span class="dim">what the feature is + index of use-cases</span>
+├── <span class="file">developer-guide.html</span> <span class="arrow">←</span> <span class="dim">plain-language overview + per-surface key points (open in a browser)</span>
+├── <span class="file">01-&lt;use-case&gt;.md</span>     <span class="arrow">←</span> <span class="dim">one user-observable behaviour, end-to-end</span>
+├── <span class="file">02-&lt;use-case&gt;.md</span>
+├── <span class="file">data-model.md</span>        <span class="arrow">←</span> <span class="dim">MySQL tables, columns and rules</span>
+├── <span class="file">api-contract.md</span>      <span class="arrow">←</span> <span class="dim">endpoints used by this feature</span>
+├── <span class="file">ui-ux.md</span>             <span class="arrow">←</span> <span class="dim">POS app screens (and super-admin pages if in scope)</span>
+└── <span class="file">test-cases/</span>          <span class="arrow">←</span> <span class="dim">tester (UI) + developer (direct API) test cases</span>
+    </div>
+
+    <p>
+      The use-case file is the unit of work. It tells you what to build (<code>Main flow</code>), what state
+      must be in place before you start (<code>Prerequisites</code>), what counts as done
+      (<code>Acceptance criteria</code>), and what's specific to your surface (<code>Platform notes</code> →
+      POS API / Data — MySQL / POS app / Super-admin panel / Integrations).
+    </p>
+
+    <h2>Reading order when you pick up a ticket</h2>
+    <ol class="steps">
+      <li>
+        <span class="step-title"><code>project-overview.md</code></span>
+        <span class="step-desc">Product context and the glossary. The canonical definitions of shared terms.</span>
+      </li>
+      <li>
+        <span class="step-title"><code>features/&lt;feature&gt;/developer-guide.html</code></span>
+        <span class="step-desc">Plain-language overview and the section for your surface. Open in a browser.</span>
+      </li>
+      <li>
+        <span class="step-title"><code>features/&lt;feature&gt;/README.md</code></span>
+        <span class="step-desc">The formal feature index: scope boundaries, dependencies, open questions.</span>
+      </li>
+      <li>
+        <span class="step-title">The specific use-case file you're implementing</span>
+        <span class="step-desc">One vertical slice, end-to-end. Read it in full before forming a plan.</span>
+      </li>
+      <li>
+        <span class="step-title"><code>data-model.md</code>, <code>api-contract.md</code>, and the relevant slice of <code>api/openapi.yaml</code></span>
+        <span class="step-desc">Schemas, endpoints, payload shapes. The contract you build against.</span>
+      </li>
+    </ol>
+    <p>That's enough to implement one slice. You shouldn't need to read every other use-case in the feature.</p>
+
+    <h2>Rules that bite if you ignore them</h2>
+    <div class="rules">
+      <div class="rule">
+        <h3>The spec describes <em>what</em>, not <em>how</em></h3>
+        <p>If it reads like pseudocode, the spec is wrong. If your code reads like the spec, you've under-implemented.</p>
+      </div>
+      <div class="rule">
+        <h3>Behaviour is never duplicated across files</h3>
+        <p>When one use-case depends on a rule defined in another, it links rather than restates. Duplication drifts.</p>
+      </div>
+      <div class="rule">
+        <h3>Open questions stay in the document</h3>
+        <p>Resolved questions get their answer and date appended in italics. Nothing gets deleted. The history matters.</p>
+      </div>
+      <div class="rule">
+        <h3>Acceptance criteria are mandatory and observable</h3>
+        <p>A tester must be able to derive pass/fail cases from them without asking. Behaviour observable from outside the system, not "the database row is updated".</p>
+      </div>
+      <div class="rule warn">
+        <h3>Restaurant and user always come from the token</h3>
+        <p>Never trust <code>restaurantId</code>, <code>userId</code>, <code>role</code>, prices or totals sent in a request body. Every query filters on the tenant bound by <code>RestaurantTenantMiddleware</code>. Developer test cases check this on every endpoint.</p>
+      </div>
+      <div class="rule warn">
+        <h3>If a <code>Prerequisites</code> bullet is unmet — pause or stub</h3>
+        <p>Never blindly. Plan-mode reads that section as a readiness gate before forming an implementation plan.</p>
+      </div>
+    </div>
+
+    <h2>When the spec is unclear</h2>
+    <p>
+      The order of operations is: check <code>project-overview.md</code> (the glossary in particular), check
+      the feature <code>README.md</code> for cross-cutting open questions, then ask. Don't guess and don't
+      infer from partial context. If something genuinely needs to change in the spec, that is a spec change here,
+      approved by the user — not a unilateral decision in the implementation repo.
+    </p>
+
+    <div class="meta">
+      <p>
+        Full picture: <a href="./conventions.md">conventions.md</a> &middot;
+        <a href="./README.md">README.md</a> &middot;
+        <a href="./CLAUDE.md">CLAUDE.md</a> &middot;
+        <a href="./project-overview.md">project-overview.md</a>
+      </p>
+      <p>
+        This page is repo-wide. Each feature has its own <code>developer-guide.html</code> alongside its
+        <code>README.md</code> — they are different documents serving different audiences.
+      </p>
+    </div>
+  </main>
+</body>
+</html>

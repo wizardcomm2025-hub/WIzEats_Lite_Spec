@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How the spec folder works — WhizEats POS Lite App-Specs</title>
+<style>
+  :root {
+    --bg: #fafaf7;
+    --panel: #ffffff;
+    --panel-alt: #f4f3ee;
+    --text: #1a1a1a;
+    --text-muted: #5b5b5b;
+    --accent: #2b5a8c;
+    --accent-soft: #e6effa;
+    --warn: #8a4b0a;
+    --warn-soft: #fdf1e1;
+    --rule: #d8d4c8;
+    --code-bg: #f3f1ea;
+    --code-text: #2b2b2b;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15181c;
+      --panel: #1d2126;
+      --panel-alt: #232830;
+      --text: #e8e6e1;
+      --text-muted: #a5a39b;
+      --accent: #82b1e0;
+      --accent-soft: #1f2c3a;
+      --warn: #e6b27a;
+      --warn-soft: #2e2418;
+      --rule: #2d333c;
+      --code-bg: #11141a;
+      --code-text: #d8d6cf;
+      --shadow: 0 1px 3px rgba(0,0,0,0.4), 0 4px 12px rgba(0,0,0,0.25);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  .page { max-width: 880px; margin: 0 auto; padding: 48px 32px 96px; }
+  header.hero { border-bottom: 1px solid var(--rule); padding-bottom: 32px; margin-bottom: 40px; }
+  .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  h1 { font-size: 38px; line-height: 1.15; margin: 0 0 12px; font-weight: 700; letter-spacing: -0.01em; }
+  .lede { font-size: 18px; color: var(--text-muted); max-width: 64ch; margin: 0; }
+  h2 { font-size: 22px; margin: 48px 0 16px; font-weight: 700; letter-spacing: -0.005em; }
+  h3 { font-size: 16px; margin: 0 0 8px; font-weight: 600; }
+  p { margin: 0 0 14px; }
+  a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 120ms ease; }
+  a:hover { border-bottom-color: var(--accent); }
+  code {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.92em;
+  }
+
+  .stages {
+    display: grid;
+    gap: 18px;
+    margin: 0 0 36px;
+  }
+  .stage {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 22px 26px 24px;
+    position: relative;
+    box-shadow: var(--shadow);
+  }
+  .stage-num {
+    position: absolute;
+    top: 18px;
+    right: 22px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+  .stage h2 {
+    margin: 0 0 4px;
+    font-size: 20px;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .stage h2 .num {
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 700;
+    background: var(--accent-soft);
+    padding: 2px 10px;
+    border-radius: 12px;
+    letter-spacing: 0;
+  }
+  .stage .sub { color: var(--text-muted); font-size: 14px; margin: 0 0 14px; }
+  .stage ul.ways { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+  .stage ul.ways li {
+    background: var(--panel-alt);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 14.5px;
+  }
+  .stage ul.ways li strong { color: var(--accent); }
+  .stage ol.steps { padding-left: 22px; margin: 0 0 8px; }
+  .stage ol.steps li { margin-bottom: 6px; font-size: 14.5px; }
+  .pill {
+    display: inline-block;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-right: 6px;
+  }
+  .pill.muted { background: var(--panel-alt); color: var(--text-muted); }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 12px 22px; margin: 0 0 14px; font-size: 13.5px; color: var(--text-muted); }
+  .meta-row .item strong { color: var(--text); font-weight: 600; }
+
+  table.ref { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; box-shadow: var(--shadow); }
+  table.ref th, table.ref td { padding: 10px 14px; text-align: left; font-size: 14px; }
+  table.ref th { background: var(--panel-alt); font-weight: 600; color: var(--text-muted); border-bottom: 1px solid var(--rule); }
+  table.ref tr + tr td { border-top: 1px solid var(--rule); }
+  table.ref td:last-child { color: var(--text); font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; font-size: 13px; }
+
+  .tip {
+    background: var(--warn-soft);
+    border-left: 4px solid var(--warn);
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 0 0 28px;
+    font-size: 14.5px;
+    color: var(--text);
+  }
+  .tip strong { color: var(--warn); }
+
+  .skills-overview { margin: 0 0 36px; }
+  .skills-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin: 16px 0 0;
+  }
+  .skill-card {
+    background: var(--accent-soft);
+    border-radius: 10px;
+    padding: 14px 18px;
+  }
+  .skill-card .skill-name {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-weight: 700;
+    color: var(--accent);
+    font-size: 14.5px;
+    margin-bottom: 4px;
+  }
+  .skill-card .skill-role {
+    font-size: 13.5px;
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .skill-extra {
+    font-size: 13.5px;
+    color: var(--text-muted);
+    margin: 12px 0 0;
+  }
+  @media (max-width: 600px) {
+    .skills-grid { grid-template-columns: 1fr; }
+  }
+
+  .meta {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--rule);
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .meta a { color: var(--text-muted); border-bottom: 1px dotted var(--rule); }
+  .meta a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+</style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <div class="eyebrow">Tutorial</div>
+      <h1>How the spec repo works</h1>
+      <p class="lede">
+        Three stages, in order. Read this once and you'll know where things live, who does what, and which
+        file to open when. Five minutes.
+      </p>
+    </header>
+
+    <section class="skills-overview">
+      <h2 style="margin-top:0">The two skills that do the work</h2>
+      <p>Each stage has a skill that does most of the heavy lifting. You don't have to memorise the workflow — call the skill by name and Claude takes you through it. Skills live under <a href="./.claude/skills/README.md"><code>.claude/skills/</code></a> and are auto-discovered.</p>
+      <div class="skills-grid">
+        <div class="skill-card">
+          <div class="skill-name">spec-intake</div>
+          <div class="skill-role"><strong>Stage 1.</strong> Interviews you about a feature and writes each Q&amp;A to <code>intake/&lt;topic&gt;.md</code> as you go. Open with "spec-intake on &lt;feature&gt;" or paste a Figma screenshot and ask for clarifying questions.</div>
+        </div>
+        <div class="skill-card">
+          <div class="skill-name">feature-spec-from-figma</div>
+          <div class="skill-role"><strong>Stage 2.</strong> Takes the intake file plus your Figma screenshots and drafts the formal spec under <code>features/&lt;name&gt;/</code>. Enforces clarify-before-draft so silent assumptions stay out.</div>
+        </div>
+      </div>
+      <p class="skill-extra">There's also <code>grill-me</code> — same interview style as <code>spec-intake</code> but without writing to a file. Reach for it when you want to pressure-test a plan or an ADR rather than scope a feature.</p>
+    </section>
+
+    <div class="stages">
+
+      <section class="stage">
+        <span class="stage-num">Stage 1 of 3</span>
+        <h2><span class="num">1</span> Intake <span style="font-weight:400;color:var(--text-muted)">— before a spec exists</span></h2>
+        <p class="sub">Gather everything you know about a feature-in-the-making, before it's structured enough to be a spec.</p>
+        <div class="meta-row">
+          <div class="item"><strong>Who:</strong> UX &amp; product, with Claude</div>
+          <div class="item"><strong>Where:</strong> <code>intake/&lt;topic&gt;.md</code></div>
+          <div class="item"><strong>Status:</strong> <code>collecting</code></div>
+        </div>
+        <p>Two ways content lands in the same file:</p>
+        <ul class="ways">
+          <li><span class="pill">Interview</span> <strong>Run the <code>spec-intake</code> skill.</strong> Tell Claude what feature you're scoping (paste a Figma screenshot if you have one). Claude asks questions one at a time, you answer, and each Q&amp;A is appended to <code>intake/&lt;topic&gt;.md</code> as the conversation proceeds — nothing is lost mid-session.</li>
+          <li><span class="pill">Drop-in</span> <strong>No skill needed.</strong> Got a fact from a client call or stakeholder? Open <code>intake/&lt;topic&gt;.md</code> directly and add a bullet under <em>What we've been told</em>. This replaces "developer notes" inside Figma.</li>
+        </ul>
+        <p style="margin-top:14px"><strong>The file goes quiet, not away.</strong> When the formal spec is written, the intake stays as the audit trail. Flip <code>Status: collecting</code> → <code>Status: spec-written</code> and link the new spec at the bottom of the intake file.</p>
+      </section>
+
+      <section class="stage">
+        <span class="stage-num">Stage 2 of 3</span>
+        <h2><span class="num">2</span> Write the spec <span style="font-weight:400;color:var(--text-muted)">— when intake is rich enough</span></h2>
+        <p class="sub">Turn the raw Q&amp;A and facts into a structured spec the team can build from.</p>
+        <div class="meta-row">
+          <div class="item"><strong>Who:</strong> Feature lead (UX/PM with eng input)</div>
+          <div class="item"><strong>Where:</strong> <code>features/&lt;name&gt;/</code></div>
+          <div class="item"><strong>Trigger:</strong> You can describe what the feature <em>does</em>, not just what someone wants</div>
+        </div>
+        <ol class="steps">
+                    <li><strong>Run the <code>feature-spec-from-figma</code> skill.</strong> Point it at the intake file and your Figma screenshots. The skill asks any remaining blocking questions, then drafts the use-case files, <code>README.md</code>, and <code>developer-guide.html</code> under <code>features/&lt;name&gt;/</code> — following the section template in <a href="./conventions.md"><code>conventions.md</code></a> and copying the styling from <a href="./features/template/README.md"><code>features/template/</code></a>.</li>
+          <li>Review the draft. Fill in <code>data-model.md</code>, <code>api-contract.md</code>, <code>ui-ux.md</code> and <code>test-cases/</code> with engineering input — they need backend judgment about MySQL tables, the <code>restaurantId</code> boundary, role checks and endpoint messages.</li>
+          <li>Get approval from the product owner and one engineer per affected repo (<code>laravel-pos-api-dev_guid</code>, <code>POS_APP-master</code>). Then write <code>plan.md</code> and <code>tasks.md</code> in <code>laravel-pos-api-dev_guid/specs/&lt;name&gt;/</code>.</li>
+        </ol>
+        <p style="margin-top:10px">After approval, flip the intake file's status and link the new spec files at the bottom of it.</p>
+      </section>
+
+      <section class="stage">
+        <span class="stage-num">Stage 3 of 3</span>
+        <h2><span class="num">3</span> Live feature <span style="font-weight:400;color:var(--text-muted)">— engineers implementing</span></h2>
+        <p class="sub">Engineers in the implementation repos picking up a ticket against a feature that's already specced.</p>
+        <div class="meta-row">
+          <div class="item"><strong>Who:</strong> Engineers in <code>laravel-pos-api-dev_guid</code>, <code>POS_APP-master</code></div>
+          <div class="item"><strong>Where they look first:</strong> <code>features/&lt;name&gt;/developer-guide.html</code></div>
+        </div>
+        <p>Reading order for one ticket:</p>
+        <ol class="steps">
+          <li><a href="./developer-guide.html"><code>developer-guide.html</code></a> (one-time orientation to the repo itself)</li>
+          <li><a href="./project-overview.md"><code>project-overview.md</code></a> — the glossary in particular</li>
+          <li><code>features/&lt;feature&gt;/developer-guide.html</code> — the per-surface "what matters where you sit" section</li>
+          <li><code>features/&lt;feature&gt;/README.md</code> — scope, dependencies, open questions</li>
+          <li>The specific use-case file (<code>NN-&lt;use-case&gt;.md</code>)</li>
+          <li><code>data-model.md</code>, <code>api-contract.md</code>, and the relevant slice of <code>api/openapi.yaml</code></li>
+        </ol>
+        <p style="margin-top:10px">That's enough to ship one vertical slice. You shouldn't need to read every other use-case in the feature.</p>
+      </section>
+
+    </div>
+
+    <h2>Quick reference</h2>
+    <table class="ref">
+      <thead>
+        <tr><th>If you want to…</th><th>Open this</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Dump a client-provided fact</td><td>intake/&lt;topic&gt;.md → "What we've been told"</td></tr>
+        <tr><td>Be interviewed by Claude about a feature</td><td>spec-intake skill</td></tr>
+        <tr><td>Pressure-test a plan or ADR</td><td>grill-me skill</td></tr>
+        <tr><td>Turn Figma screenshots into a spec</td><td>feature-spec-from-figma skill</td></tr>
+        <tr><td>Implement a ticket on an existing feature</td><td>features/&lt;name&gt;/developer-guide.html</td></tr>
+        <tr><td>Look up a term</td><td>project-overview.md → Glossary</td></tr>
+        <tr><td>Spec-authoring rules and section template</td><td>conventions.md</td></tr>
+        <tr><td>Record an architectural decision</td><td>adr/NNNN-&lt;slug&gt;.md</td></tr>
+      </tbody>
+    </table>
+
+    <h2>When in doubt — ask</h2>
+    <div class="tip">
+      <strong>Don't infer.</strong> If a spec is missing, ambiguous, or contradicts another spec, stop and ask. Open questions belong in the document (the intake file or the use-case file), not in your head. The history of <em>why</em> a decision was made is as valuable as the decision itself — that's why nothing here is ever deleted, only superseded.
+    </div>
+
+    <div class="meta">
+      <p>
+        Reference docs: <a href="./README.md">README.md</a> &middot;
+        <a href="./CLAUDE.md">CLAUDE.md</a> &middot;
+        <a href="./conventions.md">conventions.md</a> &middot;
+        <a href="./project-overview.md">project-overview.md</a> &middot;
+        <a href="./developer-guide.html">developer-guide.html</a> &middot;
+        <a href="./intake/README.md">intake/README.md</a>
+      </p>
+    </div>
+  </main>
+</body>
+</html>
