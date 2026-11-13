@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Import &amp; export — developer guide</title>
+<style>
+  :root {
+    --bg: #fafaf7; --panel: #ffffff; --panel-alt: #f4f3ee; --text: #1a1a1a; --text-muted: #5b5b5b;
+    --accent: #2b5a8c; --accent-soft: #e6effa; --warn: #8a4b0a; --warn-soft: #fdf1e1;
+    --rule: #d8d4c8; --code-bg: #f3f1ea; --code-text: #2b2b2b;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15181c; --panel: #1d2126; --panel-alt: #232830; --text: #e8e6e1; --text-muted: #a5a39b;
+      --accent: #82b1e0; --accent-soft: #1f2c3a; --warn: #e6b27a; --warn-soft: #2e2418;
+      --rule: #2d333c; --code-bg: #11141a; --code-text: #d8d6cf;
+      --shadow: 0 1px 3px rgba(0,0,0,0.4), 0 4px 12px rgba(0,0,0,0.25);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 16px; line-height: 1.6; }
+  .page { max-width: 880px; margin: 0 auto; padding: 48px 16px 96px; }
+  header.hero { border-bottom: 1px solid var(--rule); padding-bottom: 32px; margin-bottom: 40px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.08em; font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 12px; }
+  h1 { font-size: 34px; line-height: 1.15; margin: 0 0 12px; }
+  .lede { font-size: 18px; color: var(--text-muted); max-width: 64ch; margin: 0; }
+  h2 { font-size: 22px; margin: 48px 0 16px; }
+  h3 { font-size: 16px; margin: 0 0 8px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code { font-family: ui-monospace, Consolas, monospace; background: var(--code-bg); color: var(--code-text); padding: 1px 5px; border-radius: 3px; font-size: 0.92em; overflow-wrap: anywhere; }
+  .card { background: var(--panel); border: 1px solid var(--rule); border-left: 4px solid var(--accent); border-radius: 8px; padding: 14px 18px; margin: 0 0 14px; box-shadow: var(--shadow); }
+  .card.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+  .card p, .card ul { margin: 0; color: var(--text-muted); font-size: 15px; }
+  .card ul { padding-left: 20px; }
+  .meta { margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--rule); font-size: 13px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <div class="eyebrow">Feature developer guide · IMPEX</div>
+      <h1>Import &amp; export</h1>
+      <p class="lede">Bulk CSV import of zones and tables, menu, and floors and rooms, plus three header-only CSV templates. It is API-only today.</p>
+    </header>
+
+    <h2>v1 scope</h2>
+    <p>Two use cases: import CSV files and download a template. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour</strong>; IMPEX-D1 to D3 keep the current rules as accepted risks.</p>
+
+    <h2>How it works end-to-end</h2>
+    <p><code>ImportController</code> validates up to three files (<code>zone_file</code>, <code>menu_file</code>, <code>floor_file</code>; csv/txt; 10 MB) and calls <code>ImportService::import</code> with the caller's <code>restaurantId</code>. Inside one transaction it reads each file by column position, skips the first line, finds or creates the parent by name, and creates one child per row. Every row has its own try / catch, so failures are logged and skipped. <code>ExportService</code> streams a single header line per template.</p>
+
+    <h2>What matters where you sit</h2>
+    <div class="card"><h3>POS API</h3><ul>
+      <li>The response is always <code>Import completed successfully</code>, with no counts (IMPEX-D2).</li>
+      <li>The outer failure answers 400 with <code>$e-&gt;getMessage()</code> (IMPEX-D3).</li>
+      <li>No role check and no rate limit.</li>
+    </ul></div>
+    <div class="card"><h3>Data — MySQL</h3><ul>
+      <li>Parents are matched by name, ignoring case, among rows that aren't deleted; active state is ignored. Children are never de-duplicated.</li>
+      <li><code>(int)</code> / <code>(float)</code> casts; <code>createdBy</code> is ignored where it isn't fillable.</li>
+      <li>Import uses real binary IDs, so the rooms it creates work, unlike ROOM's own API.</li>
+    </ul></div>
+    <div class="card"><h3>POS app</h3><p><code>ImportExcelSection</code> is commented out in Profile. It would send the field <code>file</code> and call a different export URL (IMPEX-D1).</p></div>
+    <div class="card"><h3>Super-admin panel</h3><p>None.</p></div>
+    <div class="card"><h3>Integrations</h3><p>Failures also go to the Google Sheet log service.</p></div>
+
+    <div class="card warn"><h3>Accepted risks (do not "fix" without a new decision)</h3><ul>
+      <li>IMPEX-D1: no UI.</li>
+      <li>IMPEX-D2: silent skips, no counts, duplicates on re-import.</li>
+      <li>IMPEX-D3: no value checks, any role, raw exception text, empty templates only.</li>
+    </ul></div>
+
+    <div class="meta">
+      <p>Summary only — the formal specs win if they disagree: <a href="./README.md">README.md</a> · <a href="./api-contract.md">api-contract.md</a> · <a href="./data-model.md">data-model.md</a> · <a href="./ui-ux.md">ui-ux.md</a> · <a href="./test-cases/README.md">test cases</a></p>
+    </div>
+  </main>
+</body>
+</html>

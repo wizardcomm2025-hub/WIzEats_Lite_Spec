@@ -48,7 +48,7 @@ App-Specs/
 │       │   └── NN-<use-case>.developer.md
 │       └── assets/
 ├── adr/
-├── api/openapi.yaml                 ← placeholder; see GETTING-STARTED
+├── api/openapi.yaml                 ← placeholder; to be generated from code — never edit by hand
 ├── _for-implementation-repos/CLAUDE.md
 └── .claude/skills/
 ```
@@ -68,7 +68,9 @@ The same table appears in `project-overview.md`; keep them in sync.
 | Authorization | Roles `owner` / `waiter` / `chef` in `users.role`. The app shows screens by role; the API does not check roles yet (see Known gaps) |
 | API shape | `POST /api/<module>/<action>`; body `{ status, message, data }`; real HTTP codes (422 validation, 401, 403, 404, 500) |
 | Client surfaces | React Native POS app (`POS_APP-master`); Blade super-admin panel in the API repo |
-| Supported languages | Super-admin panel: en, es, de, bn. POS app: <!-- TODO: confirm from intake --> |
+| Supported languages | Super-admin panel: en, es, de, bn. POS app: English only (hard-coded texts, no translation library; confirmed 2026-11-13) |
+| API contract | Each feature's `api-contract.md`. `api/openapi.yaml` will be generated from code later, is never hand-edited, and `api-contract.md` wins (decided 2026-11-13) |
+| Developer test runner | PHPUnit 11 feature tests in `laravel-pos-api-dev_guid/tests/Feature/<FeatureFolder>/`, one class per use case, one method per case ID; tester cases stay manual (decided 2026-11-13) |
 
 ---
 
@@ -123,4 +125,4 @@ State: what is changing and why; which layers are affected; **breaking** or **ad
 - For real API behaviour (status codes, messages), read `routes/api.php`, the controller, its FormRequest in `app/Http/Requests/`, the service in `app/Services/`, `app/Http/Middleware/RestaurantTenantMiddleware.php` and `bootstrap/app.php`. Never invent a response a test expects; raise an open question instead.
 - For app behaviour (screens, messages, role routing), read `../POS_APP-master/src/app/` and its `CLAUDE.md`.
 - Preserve the history of open questions.
-- This folder is not a git repository yet. Do not create branches or commits here unless the user asks.
+- This folder is a git repository (branch `main`, remote `origin` on GitHub). Do not create branches, commits or pushes here unless the user asks.

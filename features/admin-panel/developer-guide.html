@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Super-admin panel — developer guide</title>
+<style>
+  :root {
+    --bg: #fafaf7; --panel: #ffffff; --panel-alt: #f4f3ee; --text: #1a1a1a; --text-muted: #5b5b5b;
+    --accent: #2b5a8c; --accent-soft: #e6effa; --warn: #8a4b0a; --warn-soft: #fdf1e1;
+    --rule: #d8d4c8; --code-bg: #f3f1ea; --code-text: #2b2b2b;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15181c; --panel: #1d2126; --panel-alt: #232830; --text: #e8e6e1; --text-muted: #a5a39b;
+      --accent: #82b1e0; --accent-soft: #1f2c3a; --warn: #e6b27a; --warn-soft: #2e2418;
+      --rule: #2d333c; --code-bg: #11141a; --code-text: #d8d6cf;
+      --shadow: 0 1px 3px rgba(0,0,0,0.4), 0 4px 12px rgba(0,0,0,0.25);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 16px; line-height: 1.6; }
+  .page { max-width: 880px; margin: 0 auto; padding: 48px 16px 96px; }
+  header.hero { border-bottom: 1px solid var(--rule); padding-bottom: 32px; margin-bottom: 40px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.08em; font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 12px; }
+  h1 { font-size: 34px; line-height: 1.15; margin: 0 0 12px; }
+  .lede { font-size: 18px; color: var(--text-muted); max-width: 64ch; margin: 0; }
+  h2 { font-size: 22px; margin: 48px 0 16px; }
+  h3 { font-size: 16px; margin: 0 0 8px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code { font-family: ui-monospace, Consolas, monospace; background: var(--code-bg); color: var(--code-text); padding: 1px 5px; border-radius: 3px; font-size: 0.92em; overflow-wrap: anywhere; }
+  .card { background: var(--panel); border: 1px solid var(--rule); border-left: 4px solid var(--accent); border-radius: 8px; padding: 14px 18px; margin: 0 0 14px; box-shadow: var(--shadow); }
+  .card.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+  .card p, .card ul { margin: 0; color: var(--text-muted); font-size: 15px; }
+  .card ul { padding-left: 20px; }
+  .meta { margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--rule); font-size: 13px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <div class="eyebrow">Feature developer guide · ADM</div>
+      <h1>Super-admin panel (shell &amp; reports)</h1>
+      <p class="lede">Sign-in, the restaurant directory, each restaurant's Overview, Order History and Item History, and the language switch of the Blade panel.</p>
+    </header>
+
+    <h2>v1 scope</h2>
+    <p>Five use cases. The panel's settings, users, zones and tables, menu and approval pages belong to RST, STAFF, TBL, MENU and ONB. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour</strong>. ADM-D1 to D3 keep the current rules as accepted risks.</p>
+
+    <h2>How it works end-to-end</h2>
+    <p>A JSON sign-in (<code>POST /admin/login</code>) creates an <code>admin</code>-guard session. <code>/admin</code> lists onboarded restaurants. <code>/admin/analytics|orders|items/{hexId}</code> run <code>DB::table</code> queries on the binary ID and render Blade with Chart.js. <code>/set-locale/{locale}</code> sets the session locale for <code>SetLocale</code>.</p>
+
+    <h2>What matters where you sit</h2>
+    <div class="card"><h3>Super-admin panel</h3><ul>
+      <li>No roles; status is checked only at sign-in; the remember cookie lasts about 400 days; <code>/set-locale</code> redirects to any Referer (ADM-D1).</li>
+      <li>Revenue = paid (<code>orderStatus</code> 2) only; orders, items and channels = all; UTC days; "Last n days" = n + 1 days; an unknown filter = all time (ADM-D2).</li>
+      <li><code>itemhistory</code> passes <code>sort_order</code> straight to <code>orderBy</code>: an invalid value gives a 500 (ADM-D2).</li>
+      <li><code>/dashboard</code> is static demo HTML; several buttons are dead; an unknown ID gives zeros, not a 404 (ADM-D3).</li>
+    </ul></div>
+    <div class="card"><h3>Data — MySQL</h3><ul>
+      <li><code>super_admins</code> is maintained by SQL only; sessions live in the <code>sessions</code> table.</li>
+      <li>All panel reads are on <code>orders</code>, <code>order_items</code> and <code>order_channels</code> by binary <code>restaurantId</code>.</li>
+    </ul></div>
+    <div class="card"><h3>POS app / POS API</h3><p>None. Panel sessions and API tokens don't cross over.</p></div>
+    <div class="card"><h3>Integrations</h3><p>CDN assets (Tailwind, Bootstrap, Font Awesome, Chart.js, Google Fonts).</p></div>
+
+    <div class="card warn"><h3>Accepted risks (do not "fix" without a new decision)</h3><ul>
+      <li>ADM-D1: SQL-only accounts, sessions outlive deactivation, about 400-day remember cookie, no roles, IP-only throttle, Referer redirect.</li>
+      <li>ADM-D2: mixed figure rules, UTC periods, static subtitles, today-only history pages, random default sort, 500 on a bad sort.</li>
+      <li>ADM-D3: fake <code>/dashboard</code>, dead buttons, page-only search, numbering per page, zeros for unknown IDs, untranslated tables.</li>
+    </ul></div>
+
+    <div class="meta">
+      <p>Summary only. The formal specs win if they disagree: <a href="./README.md">README.md</a> · <a href="./api-contract.md">api-contract.md</a> · <a href="./data-model.md">data-model.md</a> · <a href="./ui-ux.md">ui-ux.md</a> · <a href="./test-cases/README.md">test cases</a></p>
+    </div>
+  </main>
+</body>
+</html>

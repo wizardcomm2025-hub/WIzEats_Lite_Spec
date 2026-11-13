@@ -114,4 +114,4 @@ Tokens for developer cases: call `POST /api/auth/loginPin` as the fixture user a
 
 ## How to run the developer cases
 
-Runner to be decided (GETTING-STARTED item 3). Until then, run them by hand with Postman or curl using the standard request above, and check the database with a SQL client. Each case's "Database after" names the rows to look at.
+PHPUnit feature tests (decided 2026-11-13): `laravel-pos-api-dev_guid/tests/Feature/<FeatureFolder>/`, one class per use case, one test method per case ID. For one-off checks use curl with the standard request above, and check the database with a SQL client. Each case's "Database after" names the rows to look at.

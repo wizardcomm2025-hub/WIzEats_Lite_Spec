@@ -1,0 +1,10 @@
+# Personal Claude Code settings (shared skills under .claude/skills are tracked)
+.claude/settings.local.json
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+.vscode/
+.idea/

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Restaurant profile &amp; settings — developer guide</title>
+<style>
+  :root {
+    --bg: #fafaf7; --panel: #ffffff; --panel-alt: #f4f3ee; --text: #1a1a1a; --text-muted: #5b5b5b;
+    --accent: #2b5a8c; --accent-soft: #e6effa; --warn: #8a4b0a; --warn-soft: #fdf1e1;
+    --rule: #d8d4c8; --code-bg: #f3f1ea; --code-text: #2b2b2b;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15181c; --panel: #1d2126; --panel-alt: #232830; --text: #e8e6e1; --text-muted: #a5a39b;
+      --accent: #82b1e0; --accent-soft: #1f2c3a; --warn: #e6b27a; --warn-soft: #2e2418;
+      --rule: #2d333c; --code-bg: #11141a; --code-text: #d8d6cf;
+      --shadow: 0 1px 3px rgba(0,0,0,0.4), 0 4px 12px rgba(0,0,0,0.25);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 16px; line-height: 1.6; }
+  .page { max-width: 880px; margin: 0 auto; padding: 48px 16px 96px; }
+  header.hero { border-bottom: 1px solid var(--rule); padding-bottom: 32px; margin-bottom: 40px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.08em; font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 12px; }
+  h1 { font-size: 34px; line-height: 1.15; margin: 0 0 12px; }
+  .lede { font-size: 18px; color: var(--text-muted); max-width: 64ch; margin: 0; }
+  h2 { font-size: 22px; margin: 48px 0 16px; }
+  h3 { font-size: 16px; margin: 0 0 8px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code { font-family: ui-monospace, Consolas, monospace; background: var(--code-bg); color: var(--code-text); padding: 1px 5px; border-radius: 3px; font-size: 0.92em; overflow-wrap: anywhere; }
+  .card { background: var(--panel); border: 1px solid var(--rule); border-left: 4px solid var(--accent); border-radius: 8px; padding: 14px 18px; margin: 0 0 14px; box-shadow: var(--shadow); }
+  .card.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+  .card p, .card ul { margin: 0; color: var(--text-muted); font-size: 15px; }
+  .card ul { padding-left: 20px; }
+  .meta { margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--rule); font-size: 13px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <div class="eyebrow">Feature developer guide · RST</div>
+      <h1>Restaurant profile &amp; settings</h1>
+      <p class="lede">How a restaurant's details and settings are read and changed: one details endpoint that also carries zones and tables, one update endpoint behind the app's Profile screen, and two unvalidated panel forms.</p>
+    </header>
+
+    <h2>v1 scope</h2>
+    <p>Three use cases: view the profile, edit it in the app, and edit it in the panel. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour</strong>; RST-D1 to D4 keep the current rules as accepted risks.</p>
+
+    <h2>How it works end-to-end</h2>
+    <p>The app calls <code>/api/restaurants/showDetails</code> at start-up, on resume, and on Home and Orders. It gets the restaurant row, <code>restaurantConfig</code>, and the active zones with their tables and running order IDs. <code>ProfileScreen</code> maps that to a form with <code>restaurantToForm</code>. On Save it posts the whole form to <code>/api/restaurants/updateDetails</code>. <code>RestaurantService::updateDetails</code> writes the validated fields in one transaction, and the app merges the reply or re-reads the record. In the panel, <code>admin/restaurant.blade.php</code> posts JSON to <code>/admin/restaurant/update</code> and <code>/admin/restaurant/config/update</code>, which write whatever is sent.</p>
+
+    <h2>What matters where you sit</h2>
+
+    <div class="card"><h3>POS API</h3><ul>
+      <li>No role check and no rate limit on either endpoint.</li>
+      <li>Only fields in <code>RestaurantProfileRequest</code> are used. <code>enableKot</code> and the misspelt <code>invocePrefix</code> pass validation but never reach a column (RST-D2).</li>
+      <li><code>taxPercent</code> has no rule. <code>serviceChargePercent</code> needs exactly two decimals.</li>
+      <li>Service errors return <code>Failed to update restaurant details</code> / <code>Failed to fetch restaurant details</code> with no exception text.</li>
+    </ul></div>
+    <div class="card"><h3>Data — MySQL</h3><ul>
+      <li>A field sent as <code>null</code> is written as <code>NULL</code>. A NOT NULL switch then fails, and the whole transaction rolls back.</li>
+      <li>The <code>order_channels</code> updates use <code>orderChannelId = 1/2/3</code> against <code>binary(16)</code> IDs and match nothing (RST-D1).</li>
+      <li>Tax is copied onto each new order. Existing orders keep theirs.</li>
+      <li><code>HasBinaryUuids</code> hex-encodes any 16-byte string that isn't plain printable ASCII (finding F2).</li>
+    </ul></div>
+    <div class="card"><h3>POS app</h3><ul>
+      <li>Visible switches: Takeaway, Discount, Show KOT Number on Bill (and the KOT name). The others are commented out but still sent as held.</li>
+      <li>Every save sends <code>serviceChargePercent: null</code> and <code>companyAddress: null</code> (RST-D2).</li>
+      <li>On a phone, the Account section (Profile) shows for every role (RST-D3). The tablet rail shows it to the owner only.</li>
+      <li>Restaurant IDs are compared with <code>Number()</code> in <code>belongsToSession</code>, <code>mergeRestaurant</code> and <code>loadRestaurantCache</code>. Check this against hex IDs (finding F1).</li>
+    </ul></div>
+    <div class="card"><h3>Super-admin panel</h3><p>No validation. A missing field is written as NULL. Errors show nothing, because <code>res.json()</code> fails silently. An unknown restaurant ID gives a 500 on the page and on the config save. The page's title copy says Analytics / Category Overview.</p></div>
+    <div class="card"><h3>Integrations</h3><p>None. The QR ID is a UPI ID rendered as a QR on Bill Payment.</p></div>
+
+    <div class="card warn"><h3>Accepted risks (do not "fix" without a new decision)</h3><ul>
+      <li>RST-D1: the Takeaway, Delivery and Room Service switches never change the order channels. Home always offers all four.</li>
+      <li>RST-D2: an app save clears the service charge and company address. The KOT switch and invoice prefix can only be changed in the panel.</li>
+      <li>RST-D3: any role can save settings, including the UPI ID customers pay to.</li>
+      <li>RST-D4: almost no validation in the API or the panel. Negative tax is stored, and bad numbers or long text give a 500.</li>
+      <li>AUTH-D2: switched-off users and Pending / Rejected restaurants keep access.</li>
+    </ul></div>
+
+    <div class="meta">
+      <p>Summary only — the formal specs win if they disagree: <a href="./README.md">README.md</a> · <a href="./api-contract.md">api-contract.md</a> · <a href="./data-model.md">data-model.md</a> · <a href="./ui-ux.md">ui-ux.md</a> · <a href="./test-cases/README.md">test cases</a></p>
+    </div>
+  </main>
+</body>
+</html>

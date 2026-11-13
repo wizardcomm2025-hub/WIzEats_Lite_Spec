@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Printer settings — developer guide</title>
+<style>
+  :root {
+    --bg: #fafaf7; --panel: #ffffff; --panel-alt: #f4f3ee; --text: #1a1a1a; --text-muted: #5b5b5b;
+    --accent: #2b5a8c; --accent-soft: #e6effa; --warn: #8a4b0a; --warn-soft: #fdf1e1;
+    --rule: #d8d4c8; --code-bg: #f3f1ea; --code-text: #2b2b2b;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15181c; --panel: #1d2126; --panel-alt: #232830; --text: #e8e6e1; --text-muted: #a5a39b;
+      --accent: #82b1e0; --accent-soft: #1f2c3a; --warn: #e6b27a; --warn-soft: #2e2418;
+      --rule: #2d333c; --code-bg: #11141a; --code-text: #d8d6cf;
+      --shadow: 0 1px 3px rgba(0,0,0,0.4), 0 4px 12px rgba(0,0,0,0.25);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 16px; line-height: 1.6; }
+  .page { max-width: 880px; margin: 0 auto; padding: 48px 16px 96px; }
+  header.hero { border-bottom: 1px solid var(--rule); padding-bottom: 32px; margin-bottom: 40px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.08em; font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 12px; }
+  h1 { font-size: 34px; line-height: 1.15; margin: 0 0 12px; }
+  .lede { font-size: 18px; color: var(--text-muted); max-width: 64ch; margin: 0; }
+  h2 { font-size: 22px; margin: 48px 0 16px; }
+  h3 { font-size: 16px; margin: 0 0 8px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code { font-family: ui-monospace, Consolas, monospace; background: var(--code-bg); color: var(--code-text); padding: 1px 5px; border-radius: 3px; font-size: 0.92em; overflow-wrap: anywhere; }
+  .card { background: var(--panel); border: 1px solid var(--rule); border-left: 4px solid var(--accent); border-radius: 8px; padding: 14px 18px; margin: 0 0 14px; box-shadow: var(--shadow); }
+  .card.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+  .card p, .card ul { margin: 0; color: var(--text-muted); font-size: 15px; }
+  .card ul { padding-left: 20px; }
+  .meta { margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--rule); font-size: 13px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <div class="eyebrow">Feature developer guide · PRN</div>
+      <h1>Printer settings &amp; printing</h1>
+      <p class="lede">One Wi-Fi receipt printer per device: find it, save it, test it, and the route every bill and KOT print takes to reach it.</p>
+    </header>
+
+    <h2>v1 scope</h2>
+    <p>Three use cases: find and save a printer, check and test print, print a bill or KOT. Device only, so there are tester cases only. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour</strong>. PRN-D1 to D3 keep the current rules as accepted risks.</p>
+
+    <h2>How it works end-to-end</h2>
+    <p>The Printer screen stores <code>{ ip, port }</code> in AsyncStorage (<code>WIFI_PRINTER</code>). Every print button builds an 80&nbsp;mm PDF and calls <code>printPdf()</code>. With a saved printer on Android, <code>WifiPrinter.printPdf</code> renders it to 576-dot images and prints them silently. On failure, the app scans the network once and either switches printer silently, or alerts and opens Android's print screen (<code>PdfPrint</code>).</p>
+
+    <h2>What matters where you sit</h2>
+    <div class="card"><h3>POS app</h3><ul>
+      <li>A single address found after a failure is printed to and saved with no prompt (PRN-D1).</li>
+      <li>The port isn't validated: <code>Number(port) || 9100</code>, with no upper bound (PRN-D2).</li>
+      <li>Bill print errors use the title <code>Share Failed</code>; the <code>Invalid IP</code> alert can't be reached (PRN-D2).</li>
+      <li>The setting is per device and survives sign-out (PRN-D3).</li>
+    </ul></div>
+    <div class="card"><h3>Android native</h3><ul>
+      <li><code>WifiPrinterModule</code>: reachability is a plain TCP connect (3 × 5&nbsp;s), so any open port counts. There is one job queue, plus a separate scan pool (64 threads, 0.5&nbsp;s).</li>
+      <li>Status <code>-2</code> / <code>-4</code> → out of paper / cover open.</li>
+      <li><code>PdfPrintModule</code> resolves when the dialog opens, never with the outcome.</li>
+    </ul></div>
+    <div class="card"><h3>POS API / Data — MySQL / Super-admin panel</h3><p>None.</p></div>
+    <div class="card"><h3>Integrations</h3><p>SPRT printer SDK (<code>com.printer.sdk</code>), <code>react-native-html-to-pdf</code>, <code>react-native-share</code> (iOS fallback).</p></div>
+
+    <div class="card warn"><h3>Accepted risks (do not "fix" without a new decision)</h3><ul>
+      <li>PRN-D1: any listening device counts as a printer; silent switch and save after a failed print.</li>
+      <li>PRN-D2: no port check, alert and print screen together, outcome unknown, <code>Share Failed</code> title, no remove confirmation, iOS share sheet only.</li>
+      <li>PRN-D3: device-wide setting that survives sign-out and restaurant changes; chefs have no screen.</li>
+    </ul></div>
+
+    <div class="meta">
+      <p>Summary only. The formal specs win if they disagree: <a href="./README.md">README.md</a> · <a href="./api-contract.md">api-contract.md</a> · <a href="./data-model.md">data-model.md</a> · <a href="./ui-ux.md">ui-ux.md</a> · <a href="./test-cases/README.md">test cases</a></p>
+    </div>
+  </main>
+</body>
+</html>

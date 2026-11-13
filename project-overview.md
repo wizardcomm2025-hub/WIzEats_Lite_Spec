@@ -2,7 +2,7 @@
 
 > **Purpose of this file:** starting-point context for writing feature specifications and test cases. Read this before drafting any spec, use case, data model or test case. Update it when fundamental product decisions change.
 
-> **Status.** Re-targeted from the RMS template to WhizEats POS Lite on 2026-11-05. Architecture, API conventions and data facts are taken from the code on that date. Sections marked `TODO` are filled through a `spec-intake` interview — do not guess them. The glossary is the single source of truth for shared terms.
+> **Status.** Re-targeted from the RMS template to WhizEats POS Lite on 2026-11-05. Architecture, API conventions and data facts are taken from the code on that date. The product, roles, languages, scope and glossary were filled in on 2026-11-13 (intake answers, and rules read from the code and the feature specs); no `TODO` sections remain. The glossary is the single source of truth for shared terms.
 
 ---
 
@@ -10,7 +10,13 @@
 
 WhizEats POS Lite (the app is branded **Wizard POS**) is a multi-restaurant **point-of-sale system** for small restaurants. Each restaurant signs up from the mobile app with a phone number, completes onboarding, and is approved by a platform super admin. Restaurant staff then use the app to set up zones, tables, floors, rooms and the menu; take dine-in, takeaway, delivery and room-service orders; fire KOTs (Kitchen Order Tickets) to the kitchen; generate bills; and take payments. Customers can also scan a QR code and place an order themselves (public QR order). A Blade web panel lets the platform super admin approve restaurants and manage their data.
 
-<!-- TODO: confirm and extend from the project-overview interview: target customers, markets, pricing / plans if any. -->
+**Customers and market (confirmed 2026-11-13; drafted from the code and accepted by the user):**
+- WhizEats POS Lite is for small restaurants in India. Amounts are in ₹, restaurants record GST and FSSAI numbers, and payment is cash or UPI.
+- Owners register, are approved by a super admin, and set up tables, rooms and the menu.
+- Waiters take dine-in, takeaway, room-service and delivery orders and send KOTs; chefs move KOTs through the kitchen.
+- Staff bill, take cash or UPI, and print on a Wi-Fi thermal printer; owners see reports.
+
+Pricing and plans: none in the code. If they're needed, they will be recorded as a new decision.
 
 ---
 
@@ -26,7 +32,25 @@ Every restaurant user belongs to exactly one restaurant (`users.restaurantId`). 
 | Super admin | `super_admins` (separate table) | Username + password on the web panel (`/admin/login`, guard `admin`) | Platform operator. Approves / rejects restaurants and edits their data in the Blade panel. Not a restaurant user. |
 | Customer (public) | Not stored as a user | No sign-in | Uses the public QR menu and order endpoints. |
 
-<!-- TODO: confirm what each role may do (permission matrix) and whether the API must enforce it. Today the API enforces no role checks — see Known gaps. -->
+### What each role may do (decided 2026-11-13)
+
+The role rules are **the app's navigation as it is today**. The API enforces none of them: any signed-in user of a restaurant can call any endpoint. That gap is accepted per feature (AUTH, STAFF, TBL, MENU, ORD, KITCH, WAIT, BILL, HIST, RPT …) and listed under [Known gaps](#known-gaps-as-of-2026-11-05).
+
+| Area (app) | Owner | Waiter | Chef |
+|---|---|---|---|
+| Home: order channels, tables, menu ordering, cart, KOT, billing | ✓ | ✓ | — |
+| Setup: restaurant profile and settings, zones and tables, floors and rooms, categories and menu items, import / export, How to Setup | ✓ | — | — |
+| User Management | ✓ (all staff) | ✓ (own row) | ✓ (own row; tablet rail only) |
+| Owner Dashboard (reports) | ✓ | — | — |
+| Order History | ✓ | ✓ | — |
+| Waiter Dashboard, Ready Orders | — | ✓ | — |
+| KOT screen (kitchen) | — | — | ✓ (opens here) |
+| Chef Dashboard | — | — | ✓ |
+| Delivery board | ✓ | ✓ | — |
+| Printer | ✓ | ✓ | — |
+| Profile | ✓ | — | — |
+
+Super admins use only the web panel ([ADM](./features/admin-panel/)). They have no roles among themselves (ADM-D1). Public customers use only the public endpoints ([PUB](./features/public-order/)).
 
 ---
 
@@ -37,23 +61,23 @@ Feature list agreed 2026-11-05, in spec order. Each gets `features/<folder>/` wh
 | # | Code | Feature | Spec |
 |---|---|---|---|
 | 1 | AUTH | Sign-in & PIN | [features/auth/](./features/auth/) |
-| 2 | ONB | Onboarding & approval | — |
-| 3 | RST | Restaurant profile & settings | — |
-| 4 | STAFF | Staff management | — |
-| 5 | TBL | Zones & tables | — |
-| 6 | ROOM | Floors & rooms | — |
-| 7 | MENU | Menu categories & items | — |
-| 8 | IMPEX | Bulk import / export | — |
-| 9 | ORD | Take an order & send KOTs | — |
-| 10 | KITCH | Kitchen (chef) | — |
-| 11 | WAIT | Waiter pick-up | — |
-| 12 | DLV | Delivery / online-orders board | — |
-| 13 | BILL | Bill & payment | — |
-| 14 | HIST | Order history | — |
-| 15 | RPT | Reports / analytics | — |
-| 16 | PUB | Public QR ordering (developer cases only — no UI in these repos) | — |
-| 17 | PRN | Printer settings (tester cases only — device-local) | — |
-| 18 | ADM | Super-admin web panel (scope to be confirmed) | — |
+| 2 | ONB | Onboarding & approval | [features/onboarding/](./features/onboarding/) |
+| 3 | RST | Restaurant profile & settings | [features/restaurant-settings/](./features/restaurant-settings/) |
+| 4 | STAFF | Staff management | [features/staff/](./features/staff/) |
+| 5 | TBL | Zones & tables | [features/tables/](./features/tables/) |
+| 6 | ROOM | Floors & rooms | [features/rooms/](./features/rooms/) |
+| 7 | MENU | Menu categories & items | [features/menu/](./features/menu/) |
+| 8 | IMPEX | Bulk import / export | [features/import-export/](./features/import-export/) |
+| 9 | ORD | Take an order & send KOTs | [features/orders/](./features/orders/) |
+| 10 | KITCH | Kitchen (chef) | [features/kitchen/](./features/kitchen/) |
+| 11 | WAIT | Waiter pick-up | [features/waiter/](./features/waiter/) |
+| 12 | DLV | Delivery / online-orders board | [features/delivery/](./features/delivery/) |
+| 13 | BILL | Bill & payment | [features/billing/](./features/billing/) |
+| 14 | HIST | Order history | [features/order-history/](./features/order-history/) |
+| 15 | RPT | Reports / analytics | [features/reports/](./features/reports/) |
+| 16 | PUB | Public QR ordering (developer cases only — no UI in these repos) | [features/public-order/](./features/public-order/) |
+| 17 | PRN | Printer settings (tester cases only — device-local) | [features/printer/](./features/printer/) |
+| 18 | ADM | Super-admin panel: sign-in, restaurant list, Overview / Order / Item History, language (other panel pages live in ONB, RST, STAFF, TBL, MENU) | [features/admin-panel/](./features/admin-panel/) |
 
 ---
 
@@ -171,14 +195,36 @@ Developer tests describe the **intended** behaviour that the spec defines; a tes
 | Public QR order | An order a customer places by scanning the restaurant's QR, through `/api/public/menu` and `/api/public/order`, without signing in. |
 | Active / Inactive / Deleted | Row state on master data: `isActive = 1, isDelete = 0` active; `isActive = 0, isDelete = 0` inactive; `isDelete = 1` deleted (soft). |
 
-<!-- TODO: confirm channel codes, variant rules, discount and tax rules, bill numbering, payment types from the intake interview. -->
+### Ordering and billing rules (from the code and the feature specs, 2026-11-13)
+
+| Term | Rule today |
+|---|---|
+| Channel codes | Onboarding creates four channels per restaurant: `DINE_IN` (Dine In), `TAKEAWAY` (Takeaway), `ROOM_SERVICE` (Room Service), `DELIVERY` (Delivery). Each has a GUID `orderChannelId`. The Takeaway, Delivery and Room Service switches in the settings don't change the channels, so all four stay active (RST-D1). The app still sends old fixed numbers in places, such as `3` for Delivery (DLV-D1) and `0`–`3` as the history filter (HIST-D1). |
+| Variants | The `menu_item_variants` table exists, but no endpoint or screen uses it. An item has one price. |
+| Tax | The restaurant's `taxPercent` (Settings → Tax Rate) is copied onto each **new** order (ORD). The bill uses the order's rate, or the restaurant's when the order has none, and 0 when neither is set. One rate covers the whole bill; there is no per-item tax or CGST / SGST split. |
+| Discount | Only when the restaurant's `enableDiscount` is on. It is entered on Bill Breakdown as a percent or a rupee amount, is always taken off the **subtotal** (before tax), and is capped at the subtotal. |
+| Bill arithmetic (app) | The sum of the line totals, minus the discount, gives the taxable amount. Tax = taxable × rate ÷ 100, rounded to paise. Grand total = taxable + tax, rounded to the nearest rupee (.50 rounds up), and `roundOff` is the signed difference. The server stores the figures as sent and does not recompute them (BILL-D1). The public order path computes its own totals (PUB, never reached). |
+| Service charge, invoice prefix | `serviceChargePercent` and `invoicePrefix` are stored in the settings but not used on bills or prints. An app save clears the service charge (RST-D2). |
+| Order number | `<restaurantCode>/<n>`, with `n` restarting each (UTC) day. It may repeat or jump (ORD-D3). |
+| KOT number | A plain number per restaurant, with the same caveat (ORD-D3). The ticket's label is the restaurant's KOT display name (`kotDisplayName`, column default `kot`). |
+| Bill number | `max + 1` per restaurant per financial year (`financialYear` such as `2026-27`, April–March). It is a plain number with no prefix. There is no unique key; numbering relies on the lock on the config row (BILL-D3). It is assigned when the bill is generated, or when an unbilled order is paid. |
+| Payment types | The app sends `CASH` and `UPI`, or a split of both. The server accepts any text (BILL-D1). The UPI QR on Bill Payment is built from the restaurant's UPI ID (`restaurant_configs.qr`). Each payment gets `transactionId` `TXN-<12 random>` and `paymentStatus` `COMPLETED`. There is no card, wallet, void or refund. |
+| Paid | The order gets `paymentStatus` 1 and `orderStatus` 2, and the bill `billStatus` 1. Reports differ in which flag they read (RPT-D1, ADM-D2). |
 
 ---
 
 ## What is not in scope (as of this document)
 
-<!-- TODO: list the boundaries. Explicit exclusions stop scope creep. -->
-- _To be decided_ — whether the super-admin web panel is covered by specs and test cases now, or only the POS app + API (see `intake/project-overview.md` → Open).
+The super-admin web panel **is** in scope (decided 2026-11-12); its pages are split across ONB, RST, STAFF, TBL, MENU and ADM. Out of scope, as recorded in the feature specs:
+
+- **Changing code:** specs record today's behaviour, with risks accepted as `CODE-Dn` decisions. Developers change the code later, under new decisions.
+- **Missing pieces:**
+  - a customer-facing QR menu page (PUB);
+  - customer payment;
+  - bill void and refund (BILL);
+  - managing super-admin accounts (ADM).
+- **Printers:** Bluetooth or USB printers, and more than one printer per device (PRN).
+- **Languages:** translating the POS app (English only).
 
 ---
 
@@ -194,4 +240,6 @@ These are settled. Do not reopen without a formal ADR. The same table appears in
 | Authentication | Sanctum personal access tokens for the app (phone + PIN, legacy OTP); session guard `admin` for the super-admin panel. Restaurant and user come from the token, never from the body |
 | API shape | `POST /api/<module>/<action>`, body `{ status, message, data }`, real HTTP status codes (422 validation, 401, 403, 404, 500) |
 | Client surfaces | React Native POS app (`POS_APP-master`); Blade super-admin panel |
-| Supported languages | Super-admin panel: en, es, de, bn. POS app: <!-- TODO: confirm --> |
+| Supported languages | Super-admin panel: en, es, de, bn. POS app: English only. All screen texts are hard-coded; there is no translation library (confirmed 2026-11-13). |
+| API contract | Each feature's `api-contract.md`. `api/openapi.yaml` will be generated from the Laravel code later and is never hand-edited; when the two disagree, `api-contract.md` wins (decided 2026-11-13) |
+| Developer test runner | PHPUnit 11 feature tests in `laravel-pos-api-dev_guid/tests/Feature/<FeatureFolder>/`: one test class per use case (e.g. `Kitchen/SeeKotsByStageTest.php`), one test method per case ID (`test_KITCH_01_D03_…`). Tester cases stay manual (decided 2026-11-13) |

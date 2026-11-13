@@ -1,6 +1,6 @@
 # CLAUDE.md — spec-reading rules for the WhizEats POS Lite implementation repos
 
-> **Where this file goes:** these sections are merged into the `CLAUDE.md` of `C:\whizeats-lite\laravel-pos-api-dev_guid` (which has none yet — create it) and `C:\whizeats-lite\POS_APP-master` (add a "Specs" section). Keep each repo's own project-specific sections; this file adds the spec-reading rules and general behaviour.
+> **Where this file goes:** these sections are merged into the `CLAUDE.md` of `C:\whizeats-lite\laravel-pos-api-dev_guid` and `C:\whizeats-lite\POS_APP-master`. **Merged on 2026-11-13.** Both repos now carry a "Specs" section adapted to each repo. Edit those copies in step with this file. Keep each repo's own project-specific sections; this file adds the spec-reading rules and general behaviour.
 >
 > The specs live in `C:\whizeats-lite\App-Specs` (`../App-Specs/` from both repos). That folder has its own `CLAUDE.md`, which governs **writing or editing specs**.
 

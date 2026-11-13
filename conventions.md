@@ -153,7 +153,7 @@ One per feature. The data the feature owns in the MySQL schema:
 
 ### `api-contract.md`
 
-One per feature: endpoints, request and response fields, auth attribute, every message the endpoint can return, and which responses come from shared layers (see [API conventions](./project-overview.md#api-conventions)). `api/openapi.yaml` is a placeholder until GETTING-STARTED item 2 is decided; until then `api-contract.md` is the contract.
+One per feature: endpoints, request and response fields, auth attribute, every message the endpoint can return, and which responses come from shared layers (see [API conventions](./project-overview.md#api-conventions)). `api-contract.md` is the contract. `api/openapi.yaml` will be generated from the Laravel code later (decided 2026-11-13). It is never edited by hand, and when it disagrees with an `api-contract.md`, the `api-contract.md` wins.
 
 ### Test cases (`test-cases/`)
 
@@ -166,7 +166,7 @@ The goal is a feature that is **fail-safe inside out**: testers cover everything
 | File | For | Covers | Contains |
 |---|---|---|---|
 | `NN-<use-case>.tester.md` | Testers: manual on a phone / tablet, or UI automation | Normal flows and every edge case a user can reach through the POS app (and the super-admin panel, if in scope): signing in as owner / waiter / chef, empty and long inputs, double taps, no network, app killed mid-flow, restaurant pending approval, phone and tablet sizes, feedback states | Precondition, plain steps, the **exact text** on screen and the visible outcome. No endpoints, request bodies, HTTP codes or SQL. |
-| `NN-<use-case>.developer.md` | Developers: Postman / curl, SQL (runner to be decided — see GETTING-STARTED) | Input the app can't produce: no, malformed or revoked token, another restaurant's IDs, a waiter / chef token on an owner action, extra or forbidden fields (`restaurantId`, `role`, `price`…), garbage and out-of-range values, double submits, injection text, rate-limit abuse | Caller, the request and what is manipulated, then the expected HTTP status, `status` / `message`, and the **database state** after the call |
+| `NN-<use-case>.developer.md` | Developers: PHPUnit 11 feature tests in `laravel-pos-api-dev_guid/tests/Feature/<FeatureFolder>/` (one class per use case, one method per case ID, e.g. `test_KITCH_01_D03`); curl / SQL for one-off checks | Input the app can't produce: no, malformed or revoked token, another restaurant's IDs, a waiter / chef token on an owner action, extra or forbidden fields (`restaurantId`, `role`, `price`…), garbage and out-of-range values, double submits, injection text, rate-limit abuse | Caller, the request and what is manipulated, then the expected HTTP status, `status` / `message`, and the **database state** after the call |
 
 **System-only use cases** (no screen) have only a developer file; the coverage table says `Tester: n/a — no UI`.
 

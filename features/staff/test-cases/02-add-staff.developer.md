@@ -1,0 +1,24 @@
+# 02 — Add a staff member — developer cases
+
+Use case: [02-add-staff.md](../02-add-staff.md). Contract: [api-contract.md](../api-contract.md#post-apistaffcreate). Fixtures: [README.md](./README.md#fixtures).
+
+All requests: `POST /api/staff/create`, JSON, OWN-S's bearer token unless stated. Each case uses a fresh PH-NEW number unless stated. "Created" = 200 `{ status: true, message: "Staff member created successfully", data: { … } }`.
+
+| ID | Category | Request / manipulation | Expected | Database after |
+|---|---|---|---|---|
+| STAFF-02-D01 | — (happy path) | `{ "name": "Test Waiter", "phone": "<PH-NEW>", "role": "Waiter" }`; then `POST /api/auth/loginPin` with that phone and `123456` | Created; `data` has hex `userId`, REST-S's hex `restaurantId`, `status: true`, `mustChangePin: true`, `createdBy: "owner"`, no `pin`. loginPin → 200 with `mustChangePin: true` | one row: REST-S, role `Waiter`, status 1, PIN hash of `123456`, `mustChangePin` 1 |
+| STAFF-02-D02 | Input validation | (a) no `name` (b) no `phone` (c) no `role` (d) `{}` | 422 with `message` (a) `The name field is required.` (b) `The phone field is required.` (c) `The role field is required.` (d) `The name field is required.` and all three in `errors` | no row |
+| STAFF-02-D03 | Input validation | `phone` = (a) `"5123456789"` (b) `"98765"` (c) `"+919876543210"` (d) `"98765432101"` (e) `9876543210` (number, unused) | (a)–(d) 422 `The phone field format is invalid.` (e) Created | (e) one row with phone `9876543210` |
+| STAFF-02-D04 | Input validation | `name` = (a) 256 × `a` (b) `"   "` (c) `123` | (a) 422 `The name field must not be greater than 255 characters.` (b) 422 `The name field is required.` (c) 422 `The name field must be a string.` | no row |
+| STAFF-02-D05 | Business rule (accepted STAFF-D3) | `phone` = (a) PH-USED (b) WTR-A's phone | 500 `{ status: false, message: "Failed to create staff member", data: null }` | no row |
+| STAFF-02-D06 | Business-rule bypass (accepted STAFF-D3) | `role` = (a) `"owner"` (b) `"superadmin"` (c) `"chef"` (d) `""`; then loginPin for (a) | (a)–(c) Created with the role as sent (d) 422 `The role field is required.`; (a)'s loginPin payload has `role: "owner"` | rows with those roles |
+| STAFF-02-D07 | Role (accepted STAFF-D3) | WTR-A's token, `role: "Chef"` | Created in REST-A, `createdBy: "waiter"` | one row in REST-A |
+| STAFF-02-D08 | Business-rule bypass (accepted STAFF-D3) | OWN-A (already has an active waiter) creates another `Waiter`, then a third | Created both times | REST-A has three active waiters |
+| STAFF-02-D09 | Over-posting / Restaurant isolation | valid body plus `restaurantId: "<REST-B hex>"`, `status: 0`, `pin: "000000"`, `mustChangePin: false`, `userId: "00000000000000000000000000000001"`, `createdBy: "admin"` | Created | row in **REST-S**, status 1, PIN `123456`, `mustChangePin` 1, new random `userId`, `createdBy` `owner` |
+| STAFF-02-D10 | Authentication | (a) no token (b) `Bearer garbage` (c) `GET` | (a)(b) 401 `{ "message": "Unauthenticated." }` (c) 405 | no row |
+| STAFF-02-D11 | Account state (AUTH-D2) | (a) OWN-P (Pending restaurant) (b) WTR-A-OFF token taken before the switch-off (c) NOREST | (a)(b) Created (c) 403 `Restaurant context missing` | (a)(b) a row each |
+| STAFF-02-D12 | Concurrency | Two parallel creates with the same new phone | One Created, the other 500 `Failed to create staff member` | exactly one row with that phone |
+| STAFF-02-D13 | Injection | `name` = `'); DROP TABLE users; --`, then `<script>alert(1)</script>` | Created both | stored exactly as sent; `users` intact; the panel shows the text, nothing runs |
+| STAFF-02-D14 | Error hygiene | The 500 bodies of D05 / D12 | No `error` key, no SQL, no stack trace | — |
+| STAFF-02-D15 | Rate limiting | 30 creates in one minute (30 fresh phones) | All Created; no 429 | 30 rows |
+| STAFF-02-D16 | Super-admin boundary | No bearer; ADMIN-1's panel session cookie | 401 `{ "message": "Unauthenticated." }` | no row |

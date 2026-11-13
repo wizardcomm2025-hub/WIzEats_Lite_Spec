@@ -1,0 +1,23 @@
+# 03 — Edit restaurant and configuration in the panel — developer cases
+
+Use case: [03-edit-in-panel.md](../03-edit-in-panel.md). Contract: [api-contract.md → Panel routes](../api-contract.md#panel-routes-web). Fixtures and how to call the panel: [README.md](./README.md#panel-requests-use-case-03).
+
+All POSTs: JSON with ADMIN-1's session cookies and a valid `X-CSRF-TOKEN` unless stated. REST-A reset to REST-A-BASE before each case. "Details body" = `{ restaurantId: <REST-A hex>, restaurantName, restaurantContact, restaurantOwnerName, restaurantGstId, restaurantFssaiId, restaurantAddress }` with REST-A-BASE values. "Config body" = `{ restaurantId: <REST-A hex>, enableRestaurant: 1, enableDelivery: 0, enableKOT: 1, enableRoomService: 0, taxPercent: "5", serviceChargePercent: "", invoicePrefix: "" }`.
+
+| ID | Category | Request / manipulation | Expected | Database after |
+|---|---|---|---|---|
+| RST-03-D01 | — (happy path) | `POST /admin/restaurant/update`, details body with `restaurantName: "Panel Name"` | 200 `{ "success": true }` | name `Panel Name`; the other five as sent; `updated_at` now |
+| RST-03-D02 | — (happy path) | `POST /admin/restaurant/config/update`, config body with `taxPercent: "8"`, `serviceChargePercent: "10"`, `invoicePrefix: "INV"`, `enableKOT: 0` | 200 `{ "success": true }` | `taxPercent` 8.00, `serviceChargePercent` 10.00, `invoicePrefix` `INV`, `enableKOT` 0 |
+| RST-03-D03 | Input validation (accepted RST-D4) | restaurant update with only `{ restaurantId, restaurantName: "X" }` | 200 `{ "success": true }` | `restaurantName` `X`; contact, owner, GST, FSSAI, address all **NULL** |
+| RST-03-D04 | Input validation | config update without `enableRestaurant` | 500 error page | config unchanged |
+| RST-03-D05 | Input validation / Error hygiene | config body with `taxPercent` = (a) `"abc"` (b) `"1000"` (c) `""` | (a)(b) 500 error page; with `APP_DEBUG=false` no SQL or stack trace in the page (c) 200 | (a)(b) unchanged (c) `taxPercent` NULL |
+| RST-03-D06 | Input validation (accepted RST-D4) | config body with `taxPercent: "-5"`, `serviceChargePercent: "7"` | 200 | `-5.00`, `7.00` (no two-decimal rule here) |
+| RST-03-D07 | Restaurant isolation / Input validation | (a) restaurant update with `restaurantId` = 32 hex chars of no restaurant (b) config update with the same | (a) 200 `{ "success": true }` (b) 500 | (a) no restaurant changed (b) no config row inserted |
+| RST-03-D08 | Input validation / Restaurant isolation | (a) restaurant update without `restaurantId` (b) with `restaurantId` = REST-B's hex | (a) 500 (b) 200 — the panel may edit any restaurant | (a) unchanged (b) REST-B changed, REST-A untouched |
+| RST-03-D09 | Authentication / Super-admin boundary | Both POSTs: (a) no panel session (guest cookie and its CSRF token) (b) ADMIN-1 session, no `X-CSRF-TOKEN` (c) no session, `Authorization: Bearer <OWN-A token>` | (a)(c) 302 to `/`; with `Accept: application/json` 401 `{ "message": "Unauthenticated." }` (b) 419; JSON `{ "message": "CSRF token mismatch." }` | unchanged |
+| RST-03-D10 | Input validation / Error hygiene | `GET /admin/restaurant-management/` + (a) REST-A hex (b) REST-A dashed UUID (c) 32 hex chars of no restaurant (d) `xyz` | (a)(b) 200 page with REST-A's values (c)(d) 500 error page, no SQL with `APP_DEBUG=false` | — |
+| RST-03-D11 | Over-posting | (a) details body plus `isApproved: 2, status: 0, restaurantEmail: "x@example.test", isOnboardingDone: 0` (b) config body plus `enableTakeAway: 0, enableDiscount: 0, qr: "UPI-X", restaurantCode: "HACKED"` | 200 both | only the listed columns change; the extra fields are unchanged |
+| RST-03-D12 | Injection | details body with `restaurantName: "<script>alert(1)</script>"`, `restaurantAddress: "'); DROP TABLE restaurants; --"`; then `GET` the page | 200; page source shows `&lt;script&gt;…` inside the input value; no script runs | stored exactly as sent; tables intact |
+| RST-03-D13 | Business-rule bypass (accepted RST-D1) | config body with `enableDelivery: 0, enableRoomService: 1`; then OWN-A `POST /api/orders/getOrderChannels` | 200; the channel list still has all four | config updated; `order_channels` unchanged |
+| RST-03-D14 | Concurrency / Rate limiting | (a) 30 config updates in one minute with taxes 1…30 (b) config update with `serviceChargePercent: "10"` and OWN-A's app-full `updateDetails` in parallel | (a) all 200; no 429 (b) both succeed | (a) the last processed tax (b) `serviceChargePercent` 10.00 or NULL depending on which ran last (RST-D2) |
+| RST-03-D15 | Business rule | A restaurant with no `restaurant_configs` row (a developer deletes it from a throwaway restaurant): (a) config update (b) details update | (a) 500 (b) 200 | (a) still no config row (b) details changed |

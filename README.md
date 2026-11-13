@@ -41,7 +41,7 @@ App-Specs/
 │       └── assets/            ← screenshots, diagrams, exported Figma frames
 ├── adr/                       ← architecture decision records (numbered, immutable once accepted)
 ├── api/
-│   └── openapi.yaml           ← HTTP API contract (status: placeholder, see GETTING-STARTED)
+│   └── openapi.yaml           ← placeholder; to be generated from the Laravel code (feature api-contract.md files are the contract)
 ├── _for-implementation-repos/
 │   └── CLAUDE.md              ← spec-reading rules to merge into the API and app CLAUDE.md
 └── .claude/
