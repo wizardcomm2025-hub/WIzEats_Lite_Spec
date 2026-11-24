@@ -16,7 +16,7 @@ IMPEX adds no tables or columns.
 | Menu | `item_categories` by `restaurantId` + `itemCategoryName` + `isDelete = 0` | `menu_items`: `categoryId`, `name`, `description` (empty → empty string, not NULL), `isVeg = (int)col4`, `price = (float)col5`; `isActive` 1, `imageUrl` NULL |
 | Floor | `floors` by `restaurantId` + `floorName` + `isDelete = 0`; `createdBy` = the caller's role | `rooms`: `floorId`, `roomName`, `capacity = (int)col3`; `isActive` 1, `status` 0 |
 
-New parents are active. A matched parent keeps its own `isActive`, so children may land in an inactive zone, category or floor.
+New parents are active. A matched parent keeps its own `isActive`, so children may land in an inactive zone, category or floor (accepted). *Target (IMPEX-D2):* a parent is created only together with a valid child row.
 
 ## Casting examples
 
@@ -31,6 +31,7 @@ New parents are active. A matched parent keeps its own `isActive`, so children m
 
 ## Rules
 
-- All rows run in one transaction. A row whose insert throws is caught, logged and skipped (IMPEX-D2).
-- There are no uniqueness checks on tables, items or rooms.
+- All rows run in one transaction. A row whose insert throws is caught, logged and skipped (IMPEX-D2). *Target:* rows are checked before insert and skipped with a reason; an unexpected failure rolls back everything.
+- There are no uniqueness checks on tables, items or rooms today. *Target:* a child name already in its parent (not deleted, any case) — or earlier in the same file — is skipped (IMPEX-D2).
+- *Target (IMPEX-D3):* the casts below no longer decide values; a value that isn't valid skips the row.
 - Export reads no data.

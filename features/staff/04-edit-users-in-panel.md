@@ -33,14 +33,14 @@ A super admin opens a restaurant's user management page in the web panel. It lis
 
 - **`+ Add User`.** Nothing happens (the script it calls doesn't exist).
 - **Active switch in the table.** It flips on screen only; nothing is saved, and a reload shows the stored value.
-- **Role changed.** Any text is saved:
+- **Role changed.** Today any text is saved (target STAFF-D6: only `owner`, `waiter`, `chef`, any case; otherwise nothing saved, no alert):
   - `owner` gives a waiter the owner UI at the next sign-in;
   - a role in another case (`WAITER`) works as before;
   - anything else (`manager`, empty) leaves the user with no menus, and drops them from the app's staff list.
-- **Name emptied.** Saved as empty.
-- **Status Inactive.** The user's next sign-in is refused; their existing tokens still work (AUTH-D2). This is the only UI way to free a staff slot today (STAFF-D1).
+- **Name emptied.** Today saved as empty; target refused (STAFF-D6), no alert.
+- **Status Inactive.** The user's next sign-in is refused; today their existing tokens still work (AUTH-D2; target: refused). Since 2026-11-17 the owner can also do this in the app (STAFF-D1 fixed). The panel is not held to the one-chef / one-waiter limit.
 - **Server error, session expired, or CSRF expired.** No alert and no reload; nothing is saved.
-- **Unknown user ID** (crafted). Answers success; nothing changes.
+- **Unknown user ID** (crafted). Today answers success; nothing changes. Target 404 (STAFF-D6 / X-D4).
 
 ## Acceptance criteria
 
@@ -49,8 +49,9 @@ A super admin opens a restaurant's user management page in the web panel. It lis
 3. Given WTR-A's status set to `Inactive`, then the app list shows WTR-A as `Inactive`, WTR-A's next sign-in is refused, and the owner can add a new waiter.
 4. Given `+ Add User` is clicked, then nothing happens.
 5. Given an Active switch in the table is clicked and the page reloaded, then the stored status shows again (nothing saved).
-6. Given WTR-A's role set to `owner`, then at the next sign-in WTR-A gets the owner's menus.
+6. Given WTR-A's role set to `owner`, then at the next sign-in WTR-A gets the owner's menus (allowed in the target too — `owner` is a valid role).
 7. Given no panel session, then nothing changes.
+8. *(Target, STAFF-D6)* Given Role `manager` or an empty Name, when `Update` is clicked, then no alert shows and nothing changes.
 
 ## Platform notes
 
@@ -58,7 +59,7 @@ A super admin opens a restaurant's user management page in the web panel. It lis
 
 - Web routes behind `web` (session, CSRF) and `auth:admin`.
 - `AdminController::userManagement` paginates by 3.
-- `AdminController::updateUser` writes `name`, `role` and `status` exactly as sent, and always answers `{ "success": true }` unless an exception occurs.
+- `AdminController::updateUser` writes `name`, `role` and `status` exactly as sent, and always answers `{ "success": true }` unless an exception occurs. Target: validated (STAFF-D6).
 
 ### Data — MySQL
 

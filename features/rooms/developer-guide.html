@@ -44,37 +44,44 @@
     <header class="hero">
       <div class="eyebrow">Feature developer guide · ROOM</div>
       <h1>Floors &amp; rooms</h1>
-      <p class="lede">Floors and rooms for Room Service. It copies the zones and tables module, but the GUID conversion was never added, so most of it fails today.</p>
+      <p class="lede">Floors and rooms for Room Service. It copies the zones and tables module. The GUID conversion was added on 2026-11-16, so floors and rooms can now be managed from the app.</p>
     </header>
 
     <h2>v1 scope</h2>
-    <p>Two use cases: manage floors and manage rooms. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour</strong>; ROOM-D1 to D3 keep the current rules as accepted risks.</p>
+    <p>Two use cases: manage floors and manage rooms. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour plus targets</strong> (re-synced 2026-11-24): ROOM-D1 is fixed in code and in the app; ROOM-D2 to ROOM-D6 are <em>To fix</em>.</p>
 
     <h2>How it works end-to-end</h2>
-    <p>With Room Service on (RST), the owner's menu shows <code>Floor Management</code> and <code>Room Management</code>. <code>FloorManagementScreen</code> lists floors through <code>getFloorDetails</code> and saves through <code>floorSave</code>. <code>RoomConfigScreen</code> lists rooms per floor through <code>getRoomsDetails</code> and saves through <code>roomSave</code>. <code>RoomService</code> uses the IDs as sent. Unlike <code>TableService</code>, it has no <code>hex2bin</code>.</p>
+    <p>With Room Service on (RST), the owner's menu shows <code>Floor Management</code> and <code>Room Management</code>. <code>FloorManagementScreen</code> lists floors through <code>getFloorDetails</code> and saves through <code>floorSave</code>. <code>RoomConfigScreen</code> lists rooms per floor through <code>getRoomsDetails</code> and saves through <code>roomSave</code>. <code>RoomService</code> converts hex IDs with <code>hex2bin</code> (since 2026-11-16). The Room Service order screen (ORD) reads the same floors and rooms and sets a room's <code>status</code> through <code>roomSave</code>.</p>
 
     <h2>What matters where you sit</h2>
     <div class="card"><h3>POS API</h3><ul>
-      <li>Every lookup by <code>floorId</code> / <code>roomId</code> compares hex against binary, so updates give a 500 and filters return <code>[]</code>.</li>
-      <li>Creating a room inserts <code>floorId</code> as sent. A 32-character hex is too long (500); a short string creates an orphan room.</li>
-      <li>A <code>roomId</code> filter is ambiguous with <code>orders.roomId</code> (500).</li>
-      <li>No role checks; the Room Service setting isn't checked; no rate limits.</li>
+      <li>Floor update, room create / update and the room list's <code>floorId</code> filter convert hex (ROOM-D1 fixed).</li>
+      <li>Leftovers (ROOM-D4): <code>floorId</code> on room update is not converted (500); the <code>roomId</code> filter is ambiguous with <code>orders.roomId</code> (500); the floor list's <code>floorId</code> filter never matches; two running orders give two rows.</li>
+      <li><code>floorId</code> on room create isn't checked against <code>floors</code> (orphans — ROOM-D3).</li>
+      <li>No role checks; the Room Service setting isn't checked; no rate limits. Target roles (ROOM-D2): reads owner + waiter; <code>floorSave</code> owner; <code>roomSave</code> owner, or waiter with only <code>{ roomId, status }</code>.</li>
     </ul></div>
     <div class="card"><h3>Data — MySQL</h3><ul>
       <li><code>floors</code> and <code>rooms</code>, both keyed by <code>binary(16)</code>.</li>
-      <li>The list returns active rooms only, so an inactive room can't be found again.</li>
+      <li>The list returns active rooms only, so an inactive room can't be found again in the app (target <code>includeInactive</code> — ROOM-D5).</li>
     </ul></div>
     <div class="card"><h3>POS app</h3><ul>
-      <li><code>Number(r.floorId) === selectedFloor.floorId</code>, the same fault as TBL-D1.</li>
-      <li>Failed adds and renames are silent; a failed switch shows the server message.</li>
+      <li>The room filter compares IDs as strings (ROOM-D1 fixed).</li>
+      <li>Failed adds and renames are silent (target ROOM-D6, like TBL-D5); a failed switch shows the server message.</li>
     </ul></div>
     <div class="card"><h3>Super-admin panel</h3><p>No floor or room pages. The panel only switches Room Service (RST).</p></div>
-    <div class="card"><h3>Integrations</h3><p>None. Import (IMPEX) is today the only working way to create rooms.</p></div>
+    <div class="card"><h3>Integrations</h3><p>None. Import (IMPEX) can also create floors and rooms.</p></div>
 
     <div class="card warn"><h3>Accepted risks (do not "fix" without a new decision)</h3><ul>
-      <li>ROOM-D1: the broken GUID handling. Only adding a floor and listing work.</li>
-      <li>ROOM-D2: no role check and no Room Service check in the API.</li>
-      <li>ROOM-D3: orphan rooms, any capacity, 500s for long names, inactive rooms unlisted.</li>
+      <li>ROOM-D2 (part): the API does not check the Room Service setting.</li>
+    </ul></div>
+
+    <div class="card"><h3>To fix (work list)</h3><ul>
+      <li>ROOM-D2: role checks as above. Tests: 01-D08, 02-D10.</li>
+      <li>ROOM-D3: own non-deleted floor (422 <code>Invalid floor</code>); unique floor / room names; capacity ≥ 1 (app too); max 255; floor delete deletes rooms; 404s. Tests: 01-D06, D14–D16; 02-D05, D08, D09, D11, D17; 01-T09, 02-T04.</li>
+      <li>ROOM-D4: working <code>roomId</code> / <code>floorId</code> filters; convert <code>floorId</code> on room update; one row per room. Tests: 01-D09, 02-D03, D14, D16.</li>
+      <li>ROOM-D5: <code>includeInactive</code> for Room Management. Tests: 02-D19, 02-T07.</li>
+      <li>ROOM-D6: Floor / Room sheets show save errors. Tests: 01-T08, 02-T08.</li>
+      <li>AUTH-D2 (X-D2). Tests: 01-D10, 02-D12.</li>
     </ul></div>
 
     <div class="meta">

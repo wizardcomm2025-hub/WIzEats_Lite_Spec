@@ -14,4 +14,4 @@ Desktop browser, signed in to the panel as ADMIN-1, on REST-A's zones or tables 
 | TBL-03-T06 | AC6 | Edit `Table 2`; set Zone `Terrace` (added in T02); `Update`. App: Home. | Alert `Updated Successfully`; row shows `Terrace`; Home shows `Table 2` under Terrace. |
 | TBL-03-T07 | AC7 | Click `Table 3`'s Visible switch off; reload. | Switch back on; Home still shows `Table 3`. |
 | TBL-03-T08 | Alt: empty | `+ Add Table` with an empty name; `Save`. `+ Add Zone` with an empty name; `Save`. | No alert, no reload; nothing added. |
-| TBL-03-T09 | Alt: duplicate (accepted TBL-D2) | `+ Add Table`; Zone `Main Hall`, `Table 1`; `Save`. | `Table Added Successfully`; two `Table 1` rows; Home shows both. |
+| TBL-03-T09 | Alt: duplicate — *Fails until TBL-D2 is fixed* | `+ Add Table`; Zone `Main Hall`, `Table 1`; `Save`. | No alert, no reload; one `Table 1`. (Today: `Table Added Successfully`; two `Table 1` rows; Home shows both.) |

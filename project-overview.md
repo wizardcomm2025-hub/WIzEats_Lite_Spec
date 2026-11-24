@@ -3,6 +3,8 @@
 > **Purpose of this file:** starting-point context for writing feature specifications and test cases. Read this before drafting any spec, use case, data model or test case. Update it when fundamental product decisions change.
 
 > **Status.** Re-targeted from the RMS template to WhizEats POS Lite on 2026-11-05. Architecture, API conventions and data facts are taken from the code on that date. The product, roles, languages, scope and glossary were filled in on 2026-11-13 (intake answers, and rules read from the code and the feature specs); no `TODO` sections remain. The glossary is the single source of truth for shared terms.
+>
+> **Re-synced 2026-11-24** against the API repo `C:\xampp82\htdocs\laravel-pos-api\api` (branch `dev`, commit `d54d6c8`, 2026-11-19), the app `POS_APP-kot`, and the stage schema dump `db_script/pos_stage.sql` (MySQL 8.0). From this date the spec records **today's code plus the target for every known bug** — see [Decision status](./conventions.md#decision-status) and [Known gaps and targets](#known-gaps-and-targets).
 
 ---
 
@@ -34,7 +36,7 @@ Every restaurant user belongs to exactly one restaurant (`users.restaurantId`). 
 
 ### What each role may do (decided 2026-11-13)
 
-The role rules are **the app's navigation as it is today**. The API enforces none of them: any signed-in user of a restaurant can call any endpoint. That gap is accepted per feature (AUTH, STAFF, TBL, MENU, ORD, KITCH, WAIT, BILL, HIST, RPT …) and listed under [Known gaps](#known-gaps-as-of-2026-11-05).
+The role rules are **the app's navigation as it is today**. **Today** the API enforces none of them: any signed-in user of a restaurant can call any endpoint. **Target** ([X-D1](#known-gaps-and-targets), to fix): the API enforces this table, and a call outside the caller's role is refused with 403. Each feature's `api-contract.md` lists the roles allowed per endpoint.
 
 | Area (app) | Owner | Waiter | Chef |
 |---|---|---|---|
@@ -85,10 +87,10 @@ Feature list agreed 2026-11-05, in spec order. Each gets `features/<folder>/` wh
 
 | Surface | What it does | Technology |
 |---|---|---|
-| POS API (`C:\whizeats-lite\laravel-pos-api-dev_guid`) | JSON API under `/api/*` for the POS app and the public QR menu | Laravel 12, PHP 8.2, Sanctum personal access tokens, services in `app/Services/<Module>/` |
+| POS API (`C:\xampp82\htdocs\laravel-pos-api\api`, branch `dev`) | JSON API under `/api/*` for the POS app and the public QR menu | Laravel 12, PHP 8.2, Sanctum personal access tokens, services in `app/Services/<Module>/` |
 | Super-admin web panel (same repo, `routes/web.php`) | Approve restaurants; manage their items, tables, categories, zones, config and users | Laravel Blade views, session guard `admin`, locales en / es / de / bn |
-| Database | All restaurant data and the super-admin table, in one schema; rows scoped by `restaurantId` | MySQL / MariaDB (InnoDB, utf8mb4), `binary(16)` UUID keys |
-| POS app (`C:\whizeats-lite\POS_APP-master`) | The app restaurant staff use: owner / waiter / chef screens | React Native 0.82, React 19, TypeScript, Redux Toolkit, React Navigation 7, NativeWind, axios |
+| Database | All restaurant data and the super-admin table, in one schema; rows scoped by `restaurantId` | MySQL 8.0 on stage (`pos_stage`); MariaDB 10.4 in local XAMPP. InnoDB, utf8mb4, `binary(16)` UUID keys |
+| POS app (`D:\whizeats_Lite_Spec\frontend\POS_APP-kot`) | The app restaurant staff use: owner / waiter / chef screens, phone and tablet layouts | React Native 0.82, React 19, TypeScript, Redux Toolkit, React Navigation 7, NativeWind, axios. API base URL `https://pos.wizardcomm.org/api` |
 | Integrations | Error logging to Google Sheets (`GoogleSheetLogService`), e-mail (PIN mails, restaurant status mails), image upload storage, Excel import / export, receipt / KOT printing from the app | — |
 
 ---
@@ -96,22 +98,24 @@ Feature list agreed 2026-11-05, in spec order. Each gets `features/<folder>/` wh
 ## Folder structure
 
 ```
-C:\whizeats-lite\
-├── App-Specs\                     ← this folder; feature specs, test cases, ADRs
-├── laravel-pos-api-dev_guid\      ← Laravel API + super-admin panel; reads specs at ../App-Specs/
-│   ├── db_script\tables\tables.sql ← schema dump (source of truth for columns)
-│   ├── database\migrations\        ← migrations (not complete — see Known gaps)
-│   └── specs\                      ← plan.md / tasks.md / test-results.md per feature (created with the first plan)
-└── POS_APP-master\                ← React Native POS app; reads specs at ../App-Specs/
+D:\whizeats_Lite_Spec\
+├── spec\                          ← this folder; feature specs, test cases, ADRs
+├── db_script\pos_stage.sql        ← stage schema dump, MySQL 8.0 (source of truth for columns, 2026-11-24)
+└── frontend\POS_APP-kot\          ← React Native POS app
+
+C:\xampp82\htdocs\laravel-pos-api\api\   ← Laravel API + super-admin panel (git, branch dev)
+├── db_script\tables\tables.sql    ← older MariaDB dump (2026-11-05); same structure as pos_stage.sql
+├── database\migrations\           ← migrations (not complete — see X-D7)
+└── specs\                         ← plan.md / tasks.md / test-results.md per feature
 ```
 
-Data-model facts: read `laravel-pos-api-dev_guid/db_script/tables/tables.sql`, the migrations and the Eloquent models in `app/Models/`. If a table isn't there, ask the user for a fresh dump.
+Data-model facts: read `D:\whizeats_Lite_Spec\db_script\pos_stage.sql`, the migrations and the Eloquent models in `app/Models/`. If a table isn't there, ask the user for a fresh dump. Short names used in the feature files: `laravel-pos-api/api` = the API repo, `POS_APP-kot` = the app, `db_script/pos_stage.sql` = the schema dump (all renamed from `laravel-pos-api-dev_guid` / `POS_APP-master` / `tables.sql` on 2026-11-24).
 
 ---
 
 ## API conventions
 
-These are facts from the code (2026-11-05). Developer test cases use them as expected results. If the code changes, update this section first.
+These are facts from the code (2026-11-05; re-verified unchanged 2026-11-24). Developer test cases use them as expected results, except where a [target](#known-gaps-and-targets) replaces them. If the code changes, update this section first.
 
 ### Request routing
 
@@ -139,30 +143,34 @@ Over the limit → HTTP 429, body `{ "message": "Too Many Attempts." }`.
 | Situation | Produced by | HTTP | Body |
 |---|---|---|---|
 | Success | Controller | 200 (201 for `/api/public/order`) | `{ "status": true, "message": "<text>", "data": … }` |
-| Success — PIN endpoints | `PinController` | 200 | `{ "success": true, "message": "<text>", "data": … }` — note `success`, not `status` |
+| Success — PIN endpoints | `PinController` | 200 | Today `{ "success": true, "message": "<text>", "data": … }` — note `success`, not `status`. Target (X-D9): `status`, like every other endpoint |
 | Validation failure | `FormRequest::failedValidation` | 422 | `{ "status": false, "message": "<first error>", "errors": { "<field>": ["…"] } }` |
 | Business failure (duplicate, invalid PIN, not found…) | Service | 4xx as the service sets it (400 / 401 / 403 / 404 / 422) | `{ "status": false, "message": "<text>", "data": null }` |
 | Unexpected error | Service `catch` | 500 | `{ "status": false, "message": "Failed to <action>" }` — some controllers add `"error": "<exception text>"` (see Known gaps) |
 | No / invalid / revoked token | `bootstrap/app.php` exception renderer | 401 | `{ "message": "Unauthenticated." }` |
 | Token user has no restaurant | `RestaurantTenantMiddleware` | 403 | `{ "status": false, "message": "Restaurant context missing" }` |
+| Token user switched off, or restaurant not approved / inactive | **Target only** (X-D2): `RestaurantTenantMiddleware` | 403 | `{ "status": false, "message": "Your account is inactive." }` / `"Your restaurant is not approved."` / `"Your restaurant is inactive."` |
+| Role not allowed | **Target only** (X-D1): role check | 403 | `{ "status": false, "message": "You do not have permission to perform this action", "data": null }` |
+| ID not found / another restaurant's ID / deleted | **Target** (X-D4); today mostly 500 `Failed to …` | 404 | `{ "status": false, "message": "<Thing> not found", "data": null }` — the exact text per endpoint is in each `api-contract.md` |
 | Too many requests | Laravel throttle | 429 | `{ "message": "Too Many Attempts." }` |
 
-### Known gaps (as of 2026-11-05)
+### Known gaps and targets
 
-Developer tests describe the **intended** behaviour that the spec defines; a test that hits one of these gaps fails until the code is fixed. Each gap is decided in the spec of the feature that owns it.
+Cross-cutting decisions, `X-Dn`, decided 2026-11-24 (first listed 2026-11-05 as "Known gaps"). Status rules are in [Decision status](./conventions.md#decision-status): tests of a **To fix** item assert the target and carry `Fails until X-Dn is fixed`. Feature decisions cite these instead of restating them.
 
-- **Static OTP.** `OtpService` accepts `123456` for every phone and returns it in the `sendOtp` response.
-- **Default PIN.** Legacy registration (`/api/auth/register`) creates owners with PIN `123456` (`mustChangePin = 1`).
-- **No role checks on the API.** Any signed-in user of a restaurant (waiter, chef) can call owner endpoints such as `staff/create`, `item/menuItemSave`, `restaurants/updateDetails`. `staff/create` accepts any `role` string.
-- **Approval and status not enforced after login.** The tenant middleware does not check `restaurants.isApproved`, `restaurants.status` or `users.status`; a token issued before rejection or deactivation keeps working.
-- **Tokens never expire** (`sanctum.expiration = null`); logout revokes only the current token.
-- **Public order trusts the client.** `/api/public/order` takes `restaurantId`, `items.*.price` and totals from the body, with no check against `menu_items`.
-- **Cross-restaurant references.** Some updates accept a foreign key (for example `zoneId` on `tables/tableSave`) without checking it belongs to the caller's restaurant.
-- **Error text leaks.** Several controllers return `"error": $e->getMessage()` on 500. Target: no SQL, stack trace or internal names in any response.
-- **Not-found is a 500.** `firstOrFail()` inside a service `try` becomes `500 "Failed to …"` instead of 404.
-- **Inconsistent envelope.** PIN endpoints use `success`; everything else uses `status`.
-- **Unused handler.** `app/Exceptions/Handler.php` is not wired in Laravel 12; `bootstrap/app.php` decides the 401 body.
-- **Schema drift.** `bills`, `bill_items`, `customers`, `customer_addresses` exist in `tables.sql` but have no migration; `menu_item_variants` has a migration but is missing from `tables.sql`.
+| ID | Status | Today | Target |
+|---|---|---|---|
+| **X-D1** | To fix | **No role checks on the API.** Any signed-in user of a restaurant (waiter, chef) can call owner endpoints such as `staff/create`, `item/menuItemSave`, `restaurants/updateDetails`. `staff/create` accepts any `role` string. | The API enforces the [role table](#what-each-role-may-do-decided-2026-11-13). A call outside the caller's role → 403 `{ "status": false, "message": "You do not have permission to perform this action", "data": null }`, nothing written. Each `api-contract.md` lists the allowed roles per endpoint. |
+| **X-D2** | To fix | **Approval and status not enforced after login.** The tenant middleware does not check `users.status`, `restaurants.isApproved` or `restaurants.status`. A token issued before switch-off, rejection or deactivation keeps working. | `RestaurantTenantMiddleware` checks on every request, in this order: `users.status = 0` → 403 `{ "status": false, "message": "Your account is inactive." }`; `restaurants.isApproved ≠ 1` → 403 `"Your restaurant is not approved."`; `restaurants.status = 0` → 403 `"Your restaurant is inactive."`. Nothing is written. `POST /api/auth/loginPin` also refuses a restaurant with `status = 0` (403 `"Your restaurant is inactive."`, no token); pending and rejected restaurants still sign in so the app can show their screen. **Exemptions:** `POST /api/auth/logout` skips all three checks (signing out always works); `POST /api/restaurants/showDetails` skips the approval check only (the Pending-approval screen polls it). The app (today it reacts only to 401): on `Your account is inactive.` or `Your restaurant is inactive.` it signs out to Login and shows the message in red; on `Your restaurant is not approved.` it opens the Pending-approval screen (ONB) without signing out. See [AUTH 06](./features/auth/06-resume-or-end-session.md). |
+| **X-D3** | Accepted | **Tokens never expire** (`sanctum.expiration = null`); logout revokes only the current token. | — POS devices stay signed in through a shift; X-D2 blocks switched-off users. |
+| **X-D4** | To fix | **Not-found is a 500.** `firstOrFail()` inside a service `try` becomes `500 "Failed to …"`. | A missing, deleted or other-restaurant ID → 404 `{ "status": false, "message": "<Thing> not found", "data": null }`. The exact text per endpoint is in each `api-contract.md`. |
+| **X-D5** | To fix | **Error text leaks.** Some controllers and services return `"error": $e->getMessage()` on 500 (e.g. `reports/dashboard-summary`). | No response contains an `error` key, SQL, a stack trace or internal names. A 500 is `{ "status": false, "message": "Failed to <action>" }` only. |
+| **X-D6** | Accepted | **Legacy OTP and default PIN.** `OtpService` accepts `123456` for every phone and returns it in the `sendOtp` response. `/api/auth/register` creates owners with PIN `123456` (`mustChangePin = 1`). The current app does not call `sendOtp`, `verifyOtp` or `register`. | — Kept as is ([AUTH 07](./features/auth/07-legacy-otp-and-register.md)). |
+| **X-D7** | To fix | **Schema drift.** `bills`, `bill_items`, `customers`, `customer_addresses` exist in the schema dump but have no migration; `menu_item_variants` has a migration but is missing from the dump. | Migrations and `db_script` describe the same tables: add the four missing migrations, and add `menu_item_variants` to the dump. No column changes. |
+| **X-D8** | To fix | **Cross-restaurant references.** Some saves accept a foreign key (for example `zoneId` on `tables/tableSave`) without checking it belongs to the caller's restaurant. | Every foreign key in a body is checked against the caller's restaurant (and must not be deleted). Failing → 422 with the field's message from the feature's `api-contract.md`; nothing written. |
+| **X-D9** | To fix | **Inconsistent envelope.** PIN endpoints (`checkPhone`, `loginPin`, `forgotPin`, `changePin`) return `success`; everything else returns `status`. The app never reads either flag (it uses the HTTP status and `data`). | PIN endpoints return `status` (same values) instead of `success`. Not breaking for the app (checked 2026-11-24); breaking only for external callers. |
+| **X-D10** | To fix (changed 2026-11-24, was Accepted) | **Public order trusts the client.** `/api/public/order` takes `restaurantId`, `items.*.price` and totals from the body, with no check against `menu_items`. No UI calls it. | The server takes names and prices from the menu and checks items, channel, table / room and the restaurant's state — see [PUB-D2](./features/public-order/README.md#decisions). |
+| **X-D11** | Accepted | **Unused handler.** `app/Exceptions/Handler.php` is not wired in Laravel 12; `bootstrap/app.php` decides the 401 body. | — Informational. |
 
 ---
 
@@ -199,7 +207,7 @@ Developer tests describe the **intended** behaviour that the spec defines; a tes
 
 | Term | Rule today |
 |---|---|
-| Channel codes | Onboarding creates four channels per restaurant: `DINE_IN` (Dine In), `TAKEAWAY` (Takeaway), `ROOM_SERVICE` (Room Service), `DELIVERY` (Delivery). Each has a GUID `orderChannelId`. The Takeaway, Delivery and Room Service switches in the settings don't change the channels, so all four stay active (RST-D1). The app still sends old fixed numbers in places, such as `3` for Delivery (DLV-D1) and `0`–`3` as the history filter (HIST-D1). |
+| Channel codes | Onboarding creates four channels per restaurant: `DINE_IN` (Dine In), `TAKEAWAY` (Takeaway), `ROOM_SERVICE` (Room Service), `DELIVERY` (Delivery). Each has a GUID `orderChannelId`. Dine In is always active. Takeaway, Room Service and Delivery start active only if switched on during onboarding, and the settings switches turn them on and off by `channelCode` (RST-D1, fixed in code 2026-11-16). Home lists only active channels. Order history filters by `channelCode` (HIST-D1, fixed in code 2026-11-18). The Delivery board falls back to the old fixed number `3` when it has no channel id (DLV-D1). |
 | Variants | The `menu_item_variants` table exists, but no endpoint or screen uses it. An item has one price. |
 | Tax | The restaurant's `taxPercent` (Settings → Tax Rate) is copied onto each **new** order (ORD). The bill uses the order's rate, or the restaurant's when the order has none, and 0 when neither is set. One rate covers the whole bill; there is no per-item tax or CGST / SGST split. |
 | Discount | Only when the restaurant's `enableDiscount` is on. It is entered on Bill Breakdown as a percent or a rupee amount, is always taken off the **subtotal** (before tax), and is capped at the subtotal. |
@@ -234,12 +242,12 @@ These are settled. Do not reopen without a formal ADR. The same table appears in
 
 | Decision | Resolution |
 |---|---|
-| Backend stack | Laravel 12 / PHP 8.2 (`laravel-pos-api-dev_guid`): route → controller → FormRequest → service → Eloquent model |
+| Backend stack | Laravel 12 / PHP 8.2 (`laravel-pos-api/api`): route → controller → FormRequest → service → Eloquent model |
 | Database | One MySQL / MariaDB schema; every restaurant row filtered by `restaurantId`; `binary(16)` UUID keys |
 | Data access | Eloquent and the query builder inside `app/Services/<Module>/` |
 | Authentication | Sanctum personal access tokens for the app (phone + PIN, legacy OTP); session guard `admin` for the super-admin panel. Restaurant and user come from the token, never from the body |
 | API shape | `POST /api/<module>/<action>`, body `{ status, message, data }`, real HTTP status codes (422 validation, 401, 403, 404, 500) |
-| Client surfaces | React Native POS app (`POS_APP-master`); Blade super-admin panel |
+| Client surfaces | React Native POS app (`POS_APP-kot`); Blade super-admin panel |
 | Supported languages | Super-admin panel: en, es, de, bn. POS app: English only. All screen texts are hard-coded; there is no translation library (confirmed 2026-11-13). |
 | API contract | Each feature's `api-contract.md`. `api/openapi.yaml` will be generated from the Laravel code later and is never hand-edited; when the two disagree, `api-contract.md` wins (decided 2026-11-13) |
-| Developer test runner | PHPUnit 11 feature tests in `laravel-pos-api-dev_guid/tests/Feature/<FeatureFolder>/`: one test class per use case (e.g. `Kitchen/SeeKotsByStageTest.php`), one test method per case ID (`test_KITCH_01_D03_…`). Tester cases stay manual (decided 2026-11-13) |
+| Developer test runner | PHPUnit 11 feature tests in `laravel-pos-api/api/tests/Feature/<FeatureFolder>/`: one test class per use case (e.g. `Kitchen/SeeKotsByStageTest.php`), one test method per case ID (`test_KITCH_01_D03_…`). Tester cases stay manual (decided 2026-11-13) |

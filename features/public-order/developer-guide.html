@@ -48,7 +48,7 @@
     </header>
 
     <h2>v1 scope</h2>
-    <p>Three use cases: load the menu, place an order, add to an order. There is no customer UI, so all cases are developer cases. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour</strong>. PUB-D1 to D3 keep the current rules as accepted risks.</p>
+    <p>Three use cases: load the menu, place an order, add to an order. There is no customer UI, so all cases are developer cases. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour plus targets</strong> (re-synced 2026-11-24; no code change since 2026-11-12). PUB-D1 to PUB-D3 are <em>To fix</em>: the target is a working, checked public API — the only source of Delivery orders (DLV-D4).</p>
 
     <h2>How it works end-to-end</h2>
     <p><code>public/menu</code> reads the restaurant, tax, active channels and items by the <code>restaurantId</code> in the body. <code>public/order</code> creates an order with its first KOT, or, when <code>orderId</code> is sent, adds a KOT to that order. Neither route has any middleware.</p>
@@ -70,9 +70,14 @@
     <div class="card"><h3>Integrations</h3><p>The Google Sheet error log (<code>GOOGLE_SHEET_LOG_URL</code>) receives each failure, including the SQL text with customer details.</p></div>
 
     <div class="card warn"><h3>Accepted risks (do not "fix" without a new decision)</h3><ul>
-      <li>PUB-D1: create and add always fail (missing column, no IDs, <code>int</code> order ID, required <code>tableId</code> / <code>roomId</code> keys).</li>
-      <li>PUB-D2: client prices and IDs trusted; any restaurant's full menu (inactive / deleted items) is readable, whatever its approval state.</li>
-      <li>PUB-D3: no rate limit, captcha or idempotency; raw exception text with customer details and file paths in replies.</li>
+      <li>PUB-D3 (part): no captcha or bot check — the rate limits are the only guard.</li>
+      <li>Any approved restaurant's active menu is readable by anyone with its ID (by design).</li>
+    </ul></div>
+
+    <div class="card"><h3>To fix (work list)</h3><ul>
+      <li>PUB-D1: hex IDs; channel by <code>channelCode</code> (table / room / delivery-customer rules); server-generated IDs; ORD numbering under a lock; add only to the restaurant's public, unbilled order; 201 replies. Tests: 01-D01–D03, 02-D01–D03, D12–D14, 03-D01–D07.</li>
+      <li>PUB-D2 (replaces X-D10): approved, active restaurants only (404); menu lists active items in active categories; names and prices from the menu; items, table and room must be the restaurant's and active. Tests: 01-D03–D05, 02-D05–D07, D11, D15.</li>
+      <li>PUB-D3: per-IP limits (menu 60 / min, order 10 / min); <code>Idempotency-Key</code> as ORD-D4; no exception text; phone format, 255-character limits. Tests: 01-D09, 02-D04, D08, D10, 03-D10, D11.</li>
     </ul></div>
 
     <div class="meta">

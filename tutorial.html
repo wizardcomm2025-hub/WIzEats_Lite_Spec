@@ -257,7 +257,7 @@
         <ol class="steps">
                     <li><strong>Run the <code>feature-spec-from-figma</code> skill.</strong> Point it at the intake file and your Figma screenshots. The skill asks any remaining blocking questions, then drafts the use-case files, <code>README.md</code>, and <code>developer-guide.html</code> under <code>features/&lt;name&gt;/</code> — following the section template in <a href="./conventions.md"><code>conventions.md</code></a> and copying the styling from <a href="./features/template/README.md"><code>features/template/</code></a>.</li>
           <li>Review the draft. Fill in <code>data-model.md</code>, <code>api-contract.md</code>, <code>ui-ux.md</code> and <code>test-cases/</code> with engineering input — they need backend judgment about MySQL tables, the <code>restaurantId</code> boundary, role checks and endpoint messages.</li>
-          <li>Get approval from the product owner and one engineer per affected repo (<code>laravel-pos-api-dev_guid</code>, <code>POS_APP-master</code>). Then write <code>plan.md</code> and <code>tasks.md</code> in <code>laravel-pos-api-dev_guid/specs/&lt;name&gt;/</code>.</li>
+          <li>Get approval from the product owner and one engineer per affected repo (<code>laravel-pos-api/api</code>, <code>POS_APP-kot</code>). Then write <code>plan.md</code> and <code>tasks.md</code> in <code>laravel-pos-api/api/specs/&lt;name&gt;/</code>.</li>
         </ol>
         <p style="margin-top:10px">After approval, flip the intake file's status and link the new spec files at the bottom of it.</p>
       </section>
@@ -267,7 +267,7 @@
         <h2><span class="num">3</span> Live feature <span style="font-weight:400;color:var(--text-muted)">— engineers implementing</span></h2>
         <p class="sub">Engineers in the implementation repos picking up a ticket against a feature that's already specced.</p>
         <div class="meta-row">
-          <div class="item"><strong>Who:</strong> Engineers in <code>laravel-pos-api-dev_guid</code>, <code>POS_APP-master</code></div>
+          <div class="item"><strong>Who:</strong> Engineers in <code>laravel-pos-api/api</code>, <code>POS_APP-kot</code></div>
           <div class="item"><strong>Where they look first:</strong> <code>features/&lt;name&gt;/developer-guide.html</code></div>
         </div>
         <p>Reading order for one ticket:</p>

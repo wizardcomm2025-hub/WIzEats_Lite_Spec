@@ -48,32 +48,39 @@
     </header>
 
     <h2>v1 scope</h2>
-    <p>Three use cases: view the dashboard, see trends, export the report. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour</strong>; RPT-D1 to D3 keep the current rules as accepted risks.</p>
+    <p>Three use cases: view the dashboard, see trends, export the report. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour plus targets</strong> (re-synced 2026-11-24): revenue, Top Selling and the orders export were fixed in code on 2026-11-18 / 19; RPT-D1 to RPT-D3 are <em>To fix</em> for the rest.</p>
 
     <h2>How it works end-to-end</h2>
     <p>The screen posts three period reports with <code>filter_type</code> and the trend with <code>trend_type</code> on every focus. Export posts <code>get-all-items</code> and <code>get-all-orders</code> for today and writes CSV files to Downloads.</p>
 
     <h2>What matters where you sit</h2>
     <div class="card"><h3>POS API</h3><ul>
-      <li>Summary, channels and trends count paid orders only; Top Selling and the items export count all lines (RPT-D1).</li>
+      <li>Summary, channels and trends count paid orders only; Top Selling counts fully paid orders (since 2026-11-18); the items export still counts all lines (target paid-only — RPT-D1).</li>
       <li>UTC days; <code>last_30_days</code> is the calendar month; trend sorting and week numbering quirks (RPT-D2).</li>
-      <li><code>get-all-orders</code> returns raw binary IDs and 500s when non-empty; no role checks (RPT-D3).</li>
+      <li><code>get-all-orders</code> works since 2026-11-18/19 (hex IDs, IST) but formats <code>grandTotal</code> as <code>en_IN</code>; no role checks (RPT-D3).</li>
     </ul></div>
     <div class="card"><h3>Data — MySQL</h3><ul>
-      <li>Revenue is Σ <code>orders.grandTotal</code>, as sent at billing (BILL-D1).</li>
-      <li>Turnover counts orders with a <code>tableId</code>; app orders have none (ORD-D2).</li>
+      <li>Revenue is the money collected: Σ(<code>receivedAmount</code> − <code>changeAmount</code>) of completed payments (since 2026-11-18).</li>
+      <li>Turnover counts paid orders with a <code>tableId</code> (app orders have one since the ORD-D2 fix) ÷ all tables.</li>
     </ul></div>
     <div class="card"><h3>POS app</h3><ul>
       <li>Only owners see the Dashboard.</li>
-      <li>The export reports success even when a file wasn't written; CSV values aren't quoted.</li>
+      <li>The export reports success even when a file wasn't written; CSV values aren't quoted (target: quoted, formulas neutralised — RPT-D3).</li>
     </ul></div>
     <div class="card"><h3>Super-admin panel</h3><p>None (its own statistics are ADM).</p></div>
     <div class="card"><h3>Integrations</h3><p>None.</p></div>
 
     <div class="card warn"><h3>Accepted risks (do not "fix" without a new decision)</h3><ul>
-      <li>RPT-D1: paid-only figures vs all-lines Top Selling; client-sent revenue.</li>
-      <li>RPT-D2: UTC days, calendar-month "30 Days", trend ordering, all items in Top Selling.</li>
-      <li>RPT-D3: orders export 500s; unescaped CSV; any role reads revenue.</li>
+      <li>RPT-D1 (part): an under-paid order counts in Orders but not in Top Selling; trends sum <code>grandTotal</code>.</li>
+      <li>RPT-D2 (part): weekly <code>Week 1–5</code> by <code>CEIL(day/7)</code>; Top Selling returns every item.</li>
+    </ul></div>
+
+    <div class="card"><h3>Done in code 2026-11-18 / 19</h3><p>Revenue = money collected (received − change); Top Selling counts fully paid orders only; <code>get-all-orders</code> returns hex IDs, IST dates and IST <code>created_at</code> (and an <code>en_IN</code>-formatted total, to be undone — RPT-D3).</p></div>
+
+    <div class="card"><h3>To fix (work list)</h3><ul>
+      <li>RPT-D1: items export paid-only. Tests: 03-D01, D08, 03-T01.</li>
+      <li>RPT-D2: IST days everywhere; <code>30 Days</code> = today + 29 days before; daily trend Monday first. Tests: 01-D05, D06, 02-D01, 03-D09.</li>
+      <li>RPT-D3: plain <code>grandTotal</code>; app quotes CSV fields and neutralises formulas; owner only; no exception text. Tests: 01-D09, D13, 02-D07, 03-D05, D09, 01-T04, 03-T03, T04.</li>
     </ul></div>
 
     <div class="meta">

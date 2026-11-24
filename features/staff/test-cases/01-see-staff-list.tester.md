@@ -12,5 +12,5 @@ Use case: [01-see-staff-list.md](../01-see-staff-list.md). Screen text: [ui-ux.m
 | STAFF-01-T04 | AC2 | Signed in as CHF-A on DEVICE-TAB | Tap the users button in the rail. | `Your Profile` with only CHF-A's row. |
 | STAFF-01-T05 | AC3 | T01 (one active waiter, one active chef) | Look at the card. | `Add Staff` is greyed and can't be tapped; line `You have 1 active chef and 1 active waiter. Disable one to add another.` |
 | STAFF-01-T06 | AC4 | Signed in as OWN-S | Open User Management. | `No users added yet`; `Add Staff` active; line `You can have 1 active chef and 1 active waiter.` |
-| STAFF-01-T07 | Alt: role changed | Panel: set WTR-A's role to `manager` ([04](./04-edit-users-in-panel.tester.md)) | As OWN-A, reopen User Management. | Only CHF-A is listed; the `Waiter` slot is free (`Add Staff` active). |
+| STAFF-01-T07 | Alt: role changed | A developer sets WTR-A's role to `manager` in the database (the panel refuses it once STAFF-D6 is fixed) | As OWN-A, reopen User Management. | Only CHF-A is listed; the `Waiter` slot is free (`Add Staff` active). |
 | STAFF-01-T08 | Alt: inactive | Panel: set CHF-A to `Inactive` | As OWN-A, reopen User Management. | CHF-A's row is faded, switch off, `Inactive`; `Add Staff` active. |

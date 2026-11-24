@@ -23,7 +23,7 @@ See the [glossary](../../project-overview.md#glossary). Terms specific to this f
 - [ui-ux.md](./ui-ux.md) — POS app screens
 - [test-cases/README.md](./test-cases/README.md) — fixtures, coverage matrix, endpoint checklist
 - [developer-guide.html](./developer-guide.html) — plain-language overview
-- Implementation: `laravel-pos-api-dev_guid/specs/<feature>/` (plan, tasks, test results)
+- Implementation: `laravel-pos-api/api/specs/<feature>/` (plan, tasks, test results)
 
 ## Depends on
 

@@ -48,16 +48,16 @@
     </header>
 
     <h2>v1 scope</h2>
-    <p>Four use cases: choose a channel and table, send the first KOT, add a KOT, and view a running order. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour</strong>; ORD-D1 to D4 keep the current rules as accepted risks.</p>
+    <p>Four use cases: choose a channel and table, send the first KOT, add a KOT, and view a running order. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour plus targets</strong> (re-synced 2026-11-24): ORD-D2 is fixed in code and the app; ORD-D1, ORD-D3 and ORD-D4 are <em>To fix</em>.</p>
 
     <h2>How it works end-to-end</h2>
-    <p>Home lists <code>getOrderChannels</code>. Dine In shows <code>showDetails</code> zones and tables. Occupy / leave call TBL's <code>tableSave</code> with <code>status</code> 1 / 0. The cart's <code>submitKot</code> posts <code>createOrder</code>; the cart then keeps the hex <code>orderId</code>, and later sends go to <code>kots/{orderId}</code>. <code>KotService</code> numbers the order and the KOT, copies the tax %, and stores each line with the app's name and price. <code>orders/{orderId}</code> returns the live KOTs, or the bill snapshot.</p>
+    <p>Home lists <code>getOrderChannels</code>. Dine In shows <code>showDetails</code> zones and tables. Occupy / leave call TBL's <code>tableSave</code> (rooms: ROOM's <code>roomSave</code>) with <code>status</code> 1 / 0; a first KOT sets 2, and a table with an <code>orderId</code> opens its cart. The cart's <code>submitKot</code> posts <code>createOrder</code>; the cart then keeps the hex <code>orderId</code>, and later sends go to <code>kots/{orderId}</code>. <code>KotService</code> numbers the order and the KOT, copies the tax %, and stores each line with the app's name and price. <code>orders/{orderId}</code> returns the live KOTs, or the bill snapshot.</p>
 
     <h2>What matters where you sit</h2>
     <div class="card"><h3>POS API</h3><ul>
       <li>Prices, names and item IDs are trusted (ORD-D1). The channel, table and room IDs aren't checked against the restaurant.</li>
-      <li>Table / room status updates compare hex with binary (ORD-D2). The customer fields are gated on <code>orderChannelId == 2</code> (ORD-D3).</li>
-      <li>"Last" order / KOT are found by GUID order, so the numbers can repeat (ORD-D3).</li>
+      <li>Table / room status updates convert the hex ID (ORD-D2 fixed 2026-11-16). The customer fields are gated on <code>orderChannelId == 2</code> (ORD-D3).</li>
+      <li>"Last" order / KOT are found by <code>created_at</code> since 2026-11-16; with no lock, parallel requests can still share a number (ORD-D3).</li>
       <li>No <code>Idempotency-Key</code> support. Raw exception text goes out in <code>error</code> / <code>message</code> (ORD-D4).</li>
     </ul></div>
     <div class="card"><h3>Data — MySQL</h3><ul>
@@ -66,18 +66,18 @@
       <li>Adding a KOT locks the order row (<code>FOR UPDATE</code>).</li>
     </ul></div>
     <div class="card"><h3>POS app</h3><ul>
-      <li><code>tableId: tableId ? Number(tableId) : null</code> and <code>getAllOrders({ orderId: Number(orderId) })</code> turn hex IDs into <code>NaN</code> (ORD-D2).</li>
-      <li><code>getOrders</code> expects <code>data.order</code>, which the server doesn't return.</li>
+      <li>Sends the table / room hex ID and requests <code>/orders/&lt;hex&gt;</code>; <code>getOrders</code> rebuilds its shape from the flat reply (ORD-D2 fixed).</li>
+      <li><code>getCustomerInfoRequirement</code> checks channel IDs <code>'0'</code>–<code>'2'</code>, so the customer block never shows (ORD-D3).</li>
       <li>A KOT is never empty; held items stay in the cart; one submission at a time.</li>
     </ul></div>
     <div class="card"><h3>Super-admin panel</h3><p>None.</p></div>
     <div class="card"><h3>Integrations</h3><p>None on the server. KOT print / share is on the device (PRN).</p></div>
 
-    <div class="card warn"><h3>Accepted risks (do not "fix" without a new decision)</h3><ul>
-      <li>ORD-D1: client-supplied prices and names; any item ID.</li>
-      <li>ORD-D2: orders not linked to tables or rooms; running orders can't be re-opened.</li>
-      <li>ORD-D3: order and KOT numbers can repeat; customer fields dropped.</li>
-      <li>ORD-D4: no idempotency, several orders per table, any role, exception text.</li>
+    <div class="card"><h3>To fix (work list)</h3><ul>
+      <li>ORD-D1: names and prices from the menu; items, channel, table and room must be the restaurant's and active (422). Tests: 02-D05, D06, D09–D11, D21.</li>
+      <li>ORD-D3: numbers under a lock, unique per day; customer block by channel code (Takeaway optional, Delivery required), saved by the server. Tests: 02-D04, D15, 03-D09, 02-T05.</li>
+      <li>ORD-D4: honour <code>Idempotency-Key</code>; 409 for a second running order on a table / room; chef 403; 404 <code>Order not found</code> and no exception text. Tests: 01-D08, 02-D07, D09, D12, D13, D18, 03-D03–D05, D08, D11, 04-D04, D05, 02-T07, T08.</li>
+      <li>AUTH-D2 (X-D2). Tests: 01-D06, 02-D17, 03-D08.</li>
     </ul></div>
 
     <div class="meta">

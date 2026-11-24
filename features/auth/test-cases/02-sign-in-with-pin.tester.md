@@ -11,7 +11,7 @@ Each case starts on the PIN step for the named user (enter their number, tap `Co
 | AUTH-02-T03 | AC2 | CHF-A | Enter the correct PIN, tap `Login`. | The KOT screen opens. |
 | AUTH-02-T04 | AC3 | MCP-A | Enter the correct PIN, tap `Login`. | Only `Set a new PIN` is shown — no drawer, header or other screens. |
 | AUTH-02-T05 | AC4 | OWN-P | Enter the correct PIN, tap `Login`. | The Pending-approval screen is shown (wording per ONB). |
-| AUTH-02-T06 | AC4 | OWN-R; then OWN-OFF | Enter the correct PIN, tap `Login`. | OWN-R: the Rejected screen (ONB). OWN-OFF: Home opens (a switched-off restaurant is not blocked — AUTH-D2). |
+| AUTH-02-T06 | AC4, AC11 — *OWN-OFF part fails until AUTH-D2 is fixed* | OWN-R; then OWN-OFF | Enter the correct PIN, tap `Login`. | OWN-R: the Rejected screen (ONB). OWN-OFF: `Your restaurant is inactive.` in red; stays on the PIN step (today: Home opens). |
 | AUTH-02-T07 | AC5 | OWN-A | Enter a wrong PIN, tap `Login`. | `Invalid PIN` in red; stays on the PIN step; typing a new digit clears the message. |
 | AUTH-02-T08 | AC6 | WTR-A-OFF | Enter the correct PIN, tap `Login`. | `Your account is inactive.`; stays on the PIN step. |
 | AUTH-02-T09 | AC7 | CHF-A | Within one minute: 5 wrong PINs, then the correct PIN. | 1–5: `Invalid PIN`. 6th: `Too Many Attempts.` After waiting a minute, the correct PIN signs in. |

@@ -30,7 +30,8 @@ An owner, waiter or chef with a known number enters their 6-digit PIN. The serve
 - **Wrong PIN.** 401 `Invalid PIN`; the user stays on the PIN step; nothing written.
 - **User has no PIN set.** Same as wrong PIN.
 - **Switched-off user.** 403 `Your account is inactive.` — even with the right PIN.
-- **Restaurant pending, rejected or switched off.** Sign-in succeeds; the app shows the Pending-approval / Rejected screen (ONB). A switched-off restaurant is not checked (AUTH-D2).
+- **Restaurant pending or rejected.** Sign-in succeeds; the app shows the Pending-approval / Rejected screen (ONB).
+- **Restaurant switched off.** *Today:* sign-in succeeds and Home opens. *Target (AUTH-D2, to fix):* 403 `Your restaurant is inactive.` — no session; the PIN step shows the message in red.
 - **Too many attempts.** The 6th try within a minute for one phone (or the 31st from one IP) gets `Too Many Attempts.`; no token, even with the right PIN, until the minute passes.
 - **Number deleted between steps.** 404 `Phone number not found in our records`.
 - **Already signed in elsewhere.** Allowed; each device gets its own token. Earlier tokens keep working (AUTH-D3).
@@ -50,12 +51,13 @@ An owner, waiter or chef with a known number enters their 6-digit PIN. The serve
 8. `Login` stays disabled until 6 digits are entered; letters can't be entered.
 9. The PIN is never shown in clear on screen and never returned by the server.
 10. Each successful sign-in creates exactly one new session; existing sessions on other devices keep working.
+11. *(Target, AUTH-D2.)* Given an owner of a switched-off restaurant, when the correct PIN is entered, then `Your restaurant is inactive.` shows and no session is created.
 
 ## Platform notes
 
 ### POS API
 
-`POST /api/auth/loginPin`, public, throttle `loginPin` (5 / min per phone, 30 / min per IP). FormRequest `LoginPinRequest`. Order of checks and all messages in [api-contract.md](./api-contract.md#post-apiauthloginpin). Restaurant status and approval are reported, not enforced (AUTH-D2). Token name `pos-token`, abilities `*`, no expiry (AUTH-D3).
+`POST /api/auth/loginPin`, public, throttle `loginPin` (5 / min per phone, 30 / min per IP). FormRequest `LoginPinRequest`. Order of checks and all messages in [api-contract.md](./api-contract.md#post-apiauthloginpin). Today restaurant status and approval are reported, not enforced. Target (AUTH-D2): a switched-off restaurant is refused with 403; approval stays reported only. Token name `pos-token`, abilities `*`, no expiry (AUTH-D3).
 
 ### Data — MySQL
 

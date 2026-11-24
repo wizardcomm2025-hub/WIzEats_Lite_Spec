@@ -1,8 +1,8 @@
 # CLAUDE.md — spec-reading rules for the WhizEats POS Lite implementation repos
 
-> **Where this file goes:** these sections are merged into the `CLAUDE.md` of `C:\whizeats-lite\laravel-pos-api-dev_guid` and `C:\whizeats-lite\POS_APP-master`. **Merged on 2026-11-13.** Both repos now carry a "Specs" section adapted to each repo. Edit those copies in step with this file. Keep each repo's own project-specific sections; this file adds the spec-reading rules and general behaviour.
+> **Where this file goes:** these sections are merged into the `CLAUDE.md` of the API repo (`C:\xampp82\htdocs\laravel-pos-api\api`) and the app (`D:\whizeats_Lite_Spec\frontend\POS_APP-kot`). **Merged on 2026-11-13** (into the repos' earlier locations; re-check after the 2026-11-24 move). Both repos now carry a "Specs" section adapted to each repo. Edit those copies in step with this file. Keep each repo's own project-specific sections; this file adds the spec-reading rules and general behaviour.
 >
-> The specs live in `C:\whizeats-lite\App-Specs` (`../App-Specs/` from both repos). That folder has its own `CLAUDE.md`, which governs **writing or editing specs**.
+> The specs live in `D:\whizeats_Lite_Spec\spec` (from the app repo: `../../spec/`; from the API repo: use the absolute path). That folder has its own `CLAUDE.md`, which governs **writing or editing specs**.
 
 Behavioral guidelines to reduce common LLM coding mistakes. They bias toward caution over speed; for trivial tasks, use judgment.
 
@@ -35,11 +35,11 @@ Minimum code that solves the problem. No features, abstractions or configurabili
 
 ## 5. Goal-Driven Execution
 
-Turn each task into a verifiable goal tied to test IDs from `../App-Specs/features/<feature>/test-cases/`, run them, and record actual results in `laravel-pos-api-dev_guid/specs/<feature>/test-results.md`. Never mark a test Pass that was not executed.
+Turn each task into a verifiable goal tied to test IDs from `../App-Specs/features/<feature>/test-cases/`, run them, and record actual results in `laravel-pos-api/api/specs/<feature>/test-results.md`. Never mark a test Pass that was not executed.
 
 ## 6. Plan First — Never Execute Without Explicit Approval
 
-- Present the spec changes and the plan (`laravel-pos-api-dev_guid/specs/<feature>/plan.md`), then wait for an explicit "go" before editing application code, app files, migrations or `db_script/`.
+- Present the spec changes and the plan (`laravel-pos-api/api/specs/<feature>/plan.md`), then wait for an explicit "go" before editing application code, app files, migrations or `db_script/`.
 - Approval of a plan covers only the steps in it.
 
 ## 7. Always Ask Before Creating a New Branch

@@ -2,7 +2,7 @@
 
 Use case: [02-sign-in-with-pin.md](../02-sign-in-with-pin.md). Contract: [api-contract.md](../api-contract.md#post-apiauthloginpin). Fixtures and standard headers: [README.md](./README.md).
 
-All requests: `POST /api/auth/loginPin`. "Probe" = `POST /api/restaurants/showDetails` with the returned token.
+All requests: `POST /api/auth/loginPin`. "Probe" = `POST /api/restaurants/showDetails` with the returned token. Bodies show today's `success` key; only D18 checks the key name (AUTH-D10).
 
 | ID | Category | Caller | Request body / manipulation | Expected | Database after |
 |---|---|---|---|---|---|
@@ -17,9 +17,10 @@ All requests: `POST /api/auth/loginPin`. "Probe" = `POST /api/restaurants/showDe
 | AUTH-02-D09 | Rate limiting | none, one IP | OWN-A's phone: 5 wrong PINs, then the correct PIN, all within one minute | tries 1–5: 401 `Invalid PIN` · try 6: 429 `{ "message": "Too Many Attempts." }` even though the PIN is right. After the minute: correct PIN → 200. | no token row until the post-minute call |
 | AUTH-02-D10 | Rate limiting | none, one IP | 31 calls within one minute, each with a **different** phone (wrong PINs) | calls 1–30: 401 / 404 · call 31: 429 | no token row |
 | AUTH-02-D11 | Over-posting / Restaurant isolation | none | WTR-A's phone + PIN, plus `"userId": "<OWN-B id>", "restaurantId": "<REST-B id>", "role": "owner"` | 200 · `data.userId` = WTR-A, `data.restaurantId` = REST-A, `data.role: "waiter"`. Probe → REST-A, never REST-B. | token row belongs to WTR-A |
-| AUTH-02-D12 | Account state | none | correct PIN of OWN-P, OWN-R, OWN-OFF | 200 for all three (restaurant state is not checked — AUTH-D2) · `isApproved`: `"Pending"`, `"Rejected"`, `"Accepted"` respectively | one token row each |
+| AUTH-02-D12 | Account state — *OWN-OFF part fails until AUTH-D2 is fixed* | none | correct PIN of OWN-P, OWN-R, OWN-OFF | OWN-P, OWN-R: 200 · `isApproved` `"Pending"`, `"Rejected"` (approval is not checked at sign-in). OWN-OFF: 403 · `{ "status": false, "message": "Your restaurant is inactive.", "data": null }` (today: 200) | one token row each for OWN-P and OWN-R; **none** for OWN-OFF |
 | AUTH-02-D13 | Concurrency | none | two identical correct calls for OWN-A sent in parallel | both 200 · two **different** tokens · both work on the probe | two new token rows |
 | AUTH-02-D14 | Injection | none | phone `9876543210 OR 1=1`; pin `1' OR '1'='1` | 422 (phone message; then pin message) | no token row |
 | AUTH-02-D15 | Business-rule bypass | none | a user whose PIN starts with `0` (set it via 04), sent as the string `"0xxxxx"`; then as a JSON number without the leading zero | string: 200 · number: 422 `PIN must be 6 digits` | one token row (string call) |
-| AUTH-02-D16 | Error hygiene | none | OWN-A's credentials while the database is unreachable | 500 · nothing written. The body may include exception text (an `error` field, or Laravel's error output) — accepted risk (AUTH-D5). | unchanged |
+| AUTH-02-D16 | Error hygiene — *Fails until AUTH-D5 is fixed* | none | OWN-A's credentials while the database is unreachable | 500 · `message: "Something went wrong"` — **no** `error` key, no SQL, file path or class name | unchanged |
 | AUTH-02-D17 | Authentication | none | inspect D01's token and its row | token is `<id>|<40-char secret>`; `personal_access_tokens.token` holds the SHA-256 of the secret, **not** the secret; `users.pin` holds a bcrypt hash (`$2y$…`), not the PIN | — |
+| AUTH-02-D18 | Envelope — *Fails until AUTH-D10 is fixed* | none | correct PIN of OWN-A; then a wrong PIN | 200 body has `status: true`, 401 body has `status: false`; neither has a `success` key | one token row |

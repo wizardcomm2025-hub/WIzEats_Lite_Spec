@@ -2,7 +2,7 @@
 
 > **What this is:** the style guide and template for **specifications** in this folder. It governs how use-case files, feature READMEs, data models, API contracts, UI/UX files, test cases and ADRs are written.
 >
-> **What this is not:** a code style guide. Code conventions live in `laravel-pos-api-dev_guid/CLAUDE.md` (to be added) and `POS_APP-master/CLAUDE.md`.
+> **What this is not:** a code style guide. Code conventions live in the API repo's `CLAUDE.md` and `POS_APP-kot/CLAUDE.md`.
 
 Read this before writing or significantly changing a spec.
 
@@ -81,7 +81,7 @@ Every use case has the same five sub-sections, in this order:
 |---|---|
 | **POS API** | Endpoints (`POST /api/<module>/<action>`), middleware (`auth:sanctum` + `restaurant.tenant`, a throttle, or public), the FormRequest rules, server-side role checks, where `restaurantId` / `userId` come from (always the token), every response message and HTTP status. |
 | **Data — MySQL** | Tables read or written, the `restaurantId` filter, `isActive` / `isDelete` handling, status values, columns that must stay consistent (for example `tables.status` with the running order). |
-| **POS app** | Screen behaviour in `POS_APP-master`: screen name, which roles reach it, states, toasts, offline / retry, printing. Detailed layout lives in the feature's `ui-ux.md`; link to it. |
+| **POS app** | Screen behaviour in `POS_APP-kot`: screen name, which roles reach it, states, toasts, offline / retry, printing. Detailed layout lives in the feature's `ui-ux.md`; link to it. |
 | **Super-admin panel** | Pages in the Blade panel that show or change the same data. Write "Not touched." when the panel isn't involved. |
 | **Integrations** | E-mail, Google Sheets error log, image storage, Excel import / export, printer, or other external systems. |
 
@@ -126,15 +126,35 @@ Each use-case file is one **vertical slice**: one user-observable behaviour thro
 - One-paragraph summary
 - Index table of use cases
 - Key concepts (or a link to the glossary in `project-overview.md`)
-- Links to `data-model.md`, `api-contract.md`, `ui-ux.md`, `test-cases/README.md`, and the implementation folder `laravel-pos-api-dev_guid/specs/<feature>/`
+- Links to `data-model.md`, `api-contract.md`, `ui-ux.md`, `test-cases/README.md`, and the implementation folder `laravel-pos-api/api/specs/<feature>/`
 - The feature code used in test IDs (for example `TBL` for zones & tables)
 - **Depends on** — cross-feature dependencies, or `None — this feature has no cross-feature dependencies.`
-- **Decisions** and **cross-cutting open questions**
+- **Decisions** (see [Decision status](#decision-status)) and **cross-cutting open questions**
 - **Feature-wide out of scope**
+
+### Decision status
+
+The spec describes **today's code** and, where today's code is wrong, the **target** a developer must build (agreed 2026-11-24). Each gap or bug is a numbered decision `<CODE>-Dn` in the feature `README.md`. Decision IDs are stable and never reused. Every decision carries exactly one status:
+
+| Status | Meaning | How tests treat it |
+|---|---|---|
+| **To fix** | Today's behaviour is wrong. The entry states *Today:* (what the code does) and *Target:* (what it must do, with exact HTTP status and message). | Test cases assert the **target**. The case carries the tag `Fails until <CODE>-Dn is fixed`. |
+| **Accepted** | Today's behaviour is a known risk that stays. | Test cases assert today's behaviour and cite the decision, e.g. `(accepted AUTH-D7)`. |
+| **Fixed in code YYYY-MM-DD** | The code now does the target. The entry keeps its history: what it was, and what changed. | Test cases assert the current behaviour. No tag. |
+
+Format in the README:
+
+```
+- **STAFF-D2 — To fix (2026-11-24).** Today: … Target: … Tests: STAFF-03-D03, STAFF-03-D04.
+- **AUTH-D7 — Accepted (2026-11-07).** …
+- **RST-D1 — Fixed in code 2026-11-16.** Was: … Now: …
+```
+
+When a "To fix" decision is fixed, change its status to *Fixed in code*, and remove the `Fails until` tags from its tests in the same change. Cross-cutting decisions (role checks, token state, error hygiene) live in [`project-overview.md` → Known gaps](./project-overview.md#known-gaps-and-targets) as `X-Dn` and are cited by feature decisions.
 
 ### Feature `ui-ux.md`
 
-Required for every feature with a POS app screen (and for super-admin panel pages, if the panel is in scope). It covers: screen and navigation entry (which roles reach it, from where), layout and fields, bottom sheets / dialogs, feedback states (loading, empty, error, offline, success toast), confirmations, role-based visibility, phone and tablet sizes, printing / sharing output if any, and the shared components reused from `POS_APP-master/src/shared/components/`. Copy text the user sees appears here verbatim, because tester cases quote it.
+Required for every feature with a POS app screen (and for super-admin panel pages, if the panel is in scope). It covers: screen and navigation entry (which roles reach it, from where), layout and fields, bottom sheets / dialogs, feedback states (loading, empty, error, offline, success toast), confirmations, role-based visibility, phone and tablet sizes, printing / sharing output if any, and the shared components reused from `POS_APP-kot/src/shared/components/`. Copy text the user sees appears here verbatim, because tester cases quote it.
 
 ### Feature `developer-guide.html`
 
@@ -149,7 +169,7 @@ One per feature. The data the feature owns in the MySQL schema:
 - Migrations added or changed, and the matching change to `db_script/` (scripts are re-runnable: `IF NOT EXISTS`, guarded `ALTER`)
 - Seed data, indexes that matter, row lifecycle (`isActive`, `isDelete`)
 - **Naming follows the existing schema** (camelCase columns, `binary(16)` UUID keys, `isActive` / `isDelete`). Read the tables you touch and match their style.
-- Physical SQL lives in `laravel-pos-api-dev_guid/database/migrations/` and `laravel-pos-api-dev_guid/db_script/`, and must match this file.
+- Physical SQL lives in `laravel-pos-api/api/database/migrations/` and `laravel-pos-api/api/db_script/`, and must match this file.
 
 ### `api-contract.md`
 
@@ -166,7 +186,7 @@ The goal is a feature that is **fail-safe inside out**: testers cover everything
 | File | For | Covers | Contains |
 |---|---|---|---|
 | `NN-<use-case>.tester.md` | Testers: manual on a phone / tablet, or UI automation | Normal flows and every edge case a user can reach through the POS app (and the super-admin panel, if in scope): signing in as owner / waiter / chef, empty and long inputs, double taps, no network, app killed mid-flow, restaurant pending approval, phone and tablet sizes, feedback states | Precondition, plain steps, the **exact text** on screen and the visible outcome. No endpoints, request bodies, HTTP codes or SQL. |
-| `NN-<use-case>.developer.md` | Developers: PHPUnit 11 feature tests in `laravel-pos-api-dev_guid/tests/Feature/<FeatureFolder>/` (one class per use case, one method per case ID, e.g. `test_KITCH_01_D03`); curl / SQL for one-off checks | Input the app can't produce: no, malformed or revoked token, another restaurant's IDs, a waiter / chef token on an owner action, extra or forbidden fields (`restaurantId`, `role`, `price`…), garbage and out-of-range values, double submits, injection text, rate-limit abuse | Caller, the request and what is manipulated, then the expected HTTP status, `status` / `message`, and the **database state** after the call |
+| `NN-<use-case>.developer.md` | Developers: PHPUnit 11 feature tests in `laravel-pos-api/api/tests/Feature/<FeatureFolder>/` (one class per use case, one method per case ID, e.g. `test_KITCH_01_D03`); curl / SQL for one-off checks | Input the app can't produce: no, malformed or revoked token, another restaurant's IDs, a waiter / chef token on an owner action, extra or forbidden fields (`restaurantId`, `role`, `price`…), garbage and out-of-range values, double submits, injection text, rate-limit abuse | Caller, the request and what is manipulated, then the expected HTTP status, `status` / `message`, and the **database state** after the call |
 
 **System-only use cases** (no screen) have only a developer file; the coverage table says `Tester: n/a — no UI`.
 
@@ -200,9 +220,11 @@ The goal is a feature that is **fail-safe inside out**: testers cover everything
 - Developer cases also state the HTTP status and the database state. Use the real shapes in [API conventions](./project-overview.md#api-conventions). A rejected request leaves no trace.
 - Test data is described by fixture name and state ("REST-A, approved, with an active zone ZN-A1 and its table TB-A1"), never by hard-coded IDs.
 
-**Results are not recorded here.** Execution results (actual, Pass / Fail / Not run, date, build) go in `laravel-pos-api-dev_guid/specs/<feature>/test-results.md`, keyed by test ID.
+**Results are not recorded here.** Execution results (actual, Pass / Fail / Not run, date, build) go in `laravel-pos-api/api/specs/<feature>/test-results.md`, keyed by test ID.
 
 **API-level developer cases come after the API design.** They need endpoint names, request fields and messages, so they are written once `api-contract.md` is approved.
+
+**Tests for a "To fix" decision** assert the decision's *Target* and carry `Fails until <CODE>-Dn is fixed` in the Category / Precondition column, so a red run is expected and traceable. See [Decision status](#decision-status).
 
 **Test cases never introduce behaviour.** If a test needs an expected result the spec doesn't define, raise it as an open question in the use case first, and mark the test `Blocked: <question>`.
 

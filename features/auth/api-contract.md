@@ -1,8 +1,12 @@
 # Sign-in & PIN — API contract
 
-Shared shapes (401 `Unauthenticated.`, 403 `Restaurant context missing`, 429 `Too Many Attempts.`) are in [project-overview.md → API conventions](../../project-overview.md#api-conventions). Facts below are from the code on 2026-11-05.
+Shared shapes (401 `Unauthenticated.`, 403 `Restaurant context missing`, 429 `Too Many Attempts.`) are in [project-overview.md → API conventions](../../project-overview.md#api-conventions). Facts below are from the code on 2026-11-05, re-checked unchanged 2026-11-24. Rows marked **Target** are the agreed fix for a "To fix" decision ([README → Decisions](./README.md#decisions)); until it is built the server answers as in the matching **Today** row.
 
-**Envelope note.** PIN and OTP endpoints answer with `success`; `register` and `logout` answer with `status` (AUTH-D10). Every validation failure is HTTP 422 with `errors` holding all field errors.
+**Envelope note.** Today PIN and OTP endpoints answer with `success`; `register` and `logout` answer with `status`. **Target (AUTH-D10 / X-D9):** `checkPhone`, `loginPin`, `forgotPin`, `changePin` use `status` instead of `success`, same values; the legacy `sendOtp` / `verifyOtp` keep `success`. Bodies below show the **today** key. Every validation failure is HTTP 422 with `errors` holding all field errors.
+
+**500 note.** Today every AUTH 500 carries `"error": "<exception text>"`. **Target (AUTH-D5 / X-D5):** the same body without the `error` key.
+
+**Role.** Every role (owner, waiter, chef) may use every AUTH endpoint; X-D1 adds no check here.
 
 ## Endpoints
 
@@ -11,13 +15,13 @@ Shared shapes (401 `Unauthenticated.`, 403 `Restaurant context missing`, 429 `To
 | `POST /api/auth/checkPhone` | public | 20 / min per IP | App | [01](./01-check-phone.md) |
 | `POST /api/auth/loginPin` | public | 5 / min per phone + 30 / min per IP | App | [02](./02-sign-in-with-pin.md) |
 | `POST /api/auth/forgotPin` | public | 3 / 10 min per phone + 10 / min per IP | App | [03](./03-reset-forgotten-pin.md) |
-| `POST /api/auth/changePin` | `auth:sanctum`, `restaurant.tenant` | none (AUTH-D7) | App | [04](./04-change-pin.md) |
-| `POST /api/auth/logout` | `auth:sanctum`, `restaurant.tenant` | none | App | [05](./05-log-out.md) |
+| `POST /api/auth/changePin` | `auth:sanctum`, `restaurant.tenant` | Today none. **Target (AUTH-D7):** 5 / min per user | App | [04](./04-change-pin.md) |
+| `POST /api/auth/logout` | `auth:sanctum`, `restaurant.tenant` (**Target:** exempt from the X-D2 status checks) | none | App | [05](./05-log-out.md) |
 | `POST /api/auth/sendOtp` | public | none | Old app versions | [07](./07-legacy-otp-and-register.md) |
 | `POST /api/auth/verifyOtp` | public | none | Old app versions | [07](./07-legacy-otp-and-register.md) |
 | `POST /api/auth/register` | public | none | Old app versions | [07](./07-legacy-otp-and-register.md) |
 
-No AUTH endpoint checks the role.
+No AUTH endpoint checks the role, today or in the target.
 
 ---
 
@@ -51,7 +55,7 @@ Writes nothing.
 | `phone` | string | yes | as `checkPhone` |
 | `pin` | string or number | yes | exactly 6 digits |
 
-Checks, in this order: validation → phone exists → `users.status = 1` → PIN matches. Restaurant approval and status are **not** checked (AUTH-D2); the response reports them.
+Checks, in this order: validation → phone exists → `users.status = 1` → PIN matches. Today restaurant approval and status are **not** checked; the response reports approval. **Target (AUTH-D2):** after the PIN matches, a restaurant with `status = 0` is refused (403 below). Approval is still not checked at sign-in — pending and rejected owners sign in and see their ONB screen.
 
 | Situation | HTTP | Body |
 |---|---|---|
@@ -63,6 +67,7 @@ Checks, in this order: validation → phone exists → `users.status = 1` → PI
 | Phone not registered | 404 | `{ "success": false, "message": "Phone number not found in our records", "data": null }` |
 | User switched off | 403 | `{ "success": false, "message": "Your account is inactive.", "data": null }` |
 | Wrong PIN, or user has no PIN | 401 | `{ "success": false, "message": "Invalid PIN", "data": null }` |
+| **Target (AUTH-D2):** correct PIN, restaurant switched off (`restaurants.status = 0`) | 403 | `{ "status": false, "message": "Your restaurant is inactive.", "data": null }` — no token. Today: 200 with a token. |
 | Over the limit | 429 | `{ "message": "Too Many Attempts." }` |
 | Unexpected error | 500 | `{ "success": false, "message": "Something went wrong", "error": "<exception text>" }` (AUTH-D5) |
 
@@ -134,6 +139,8 @@ Works for switched-off users too (AUTH-D6). Masking: see [README → Key concept
 | Current PIN wrong | 401 | `{ "success": false, "message": "Current PIN is incorrect", "data": null }` |
 | No / invalid token | 401 | `{ "message": "Unauthenticated." }` |
 | Token's user has no restaurant | 403 | `{ "status": false, "message": "Restaurant context missing" }` |
+| **Target (AUTH-D2 / X-D2):** token's user switched off; restaurant not approved; restaurant switched off | 403 | `{ "status": false, "message": "Your account is inactive." }` / `"Your restaurant is not approved."` / `"Your restaurant is inactive."` — nothing written. Today: the change goes through. |
+| **Target (AUTH-D7):** 6th call within a minute by the same user | 429 | `{ "message": "Too Many Attempts." }` — nothing written, even with the right current PIN. Today: no limit. |
 | Unexpected error | 500 | `{ "success": false, "message": "Something went wrong", "error": "<exception text>" }` (AUTH-D5) |
 
 Allowed whether or not `mustChangePin` is set. The user is always the token's user; any `phone`, `userId` or `restaurantId` in the body is ignored.
@@ -153,6 +160,7 @@ No body.
 | Logged out | 200 | `{ "status": true, "message": "Logged out successfully" }` |
 | No / invalid / already logged-out token | 401 | `{ "message": "Unauthenticated." }` |
 | Token's user has no restaurant | 403 | `{ "status": false, "message": "Restaurant context missing" }` |
+| Token's user switched off, or restaurant not approved / switched off | 200 | As "Logged out" — today because nothing is checked; in the **target** because `logout` is exempt from X-D2. Signing out always works. |
 | Unexpected error | 500 | `{ "status": false, "message": "Something went wrong", "error": "<exception text>" }` (AUTH-D5) |
 
 **Writes:** deletes the `personal_access_tokens` row of the token sent. The user's other tokens stay.
@@ -207,4 +215,4 @@ User status is **not** checked. **Writes:** `users.phone_verified_at = now`, one
 
 `data` is the user row (IDs as hex, no `pin`). **No token is issued.** **Writes on a new phone:** a `restaurants` row (`isOnboardingDone = 0`) and an owner `users` row (`status = 1`, PIN `123456` hashed, `mustChangePin = 1`). (AUTH-D1)
 
-**Parallel calls with the same new phone (AUTH-D11 — change from today):** both rows are written together or not at all. One call answers `type: "register"`; the other answers 200 `type: "verify"` with the same user. Never a 500, never a restaurant without a user.
+**Parallel calls with the same new phone (AUTH-D11 — To fix; not built as of 2026-11-24):** both rows are written together or not at all. One call answers `type: "register"`; the other answers 200 `type: "verify"` with the same user. Never a 500, never a restaurant without a user.

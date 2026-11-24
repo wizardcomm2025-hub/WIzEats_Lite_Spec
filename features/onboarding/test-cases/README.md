@@ -1,8 +1,13 @@
 # Onboarding & approval — test cases
 
-Rules: [conventions.md → Test cases](../../../conventions.md#test-cases-test-cases). Results go in `laravel-pos-api-dev_guid/specs/onboarding/test-results.md`, never here.
+Rules: [conventions.md → Test cases](../../../conventions.md#test-cases-test-cases). Results go in `laravel-pos-api/api/specs/onboarding/test-results.md`, never here.
 
-**Expected results describe today's behaviour**, as fixed by ONB-D1 to ONB-D4 and AUTH-D2 ([README](../README.md#decisions)). Cases that check an accepted risk say so. No case is blocked.
+**Expected results follow the decision statuses** in the [README](../README.md#decisions) (re-synced 2026-11-24, rules in [conventions.md → Decision status](../../../conventions.md#decision-status)):
+
+- *Accepted* decisions (ONB-D3, ONB-D4): the case asserts today's behaviour and cites the decision.
+- *To fix* decisions (ONB-D1, ONB-D2, AUTH-D2): the case asserts the **target** and is tagged `Fails until <ID> is fixed`. A red result on a tagged case is expected until the fix ships.
+
+No case is blocked.
 
 ## Fixtures
 
@@ -12,7 +17,7 @@ The AUTH fixtures apply ([AUTH test README](../../auth/test-cases/README.md#fixt
 |---|---|
 | REST-P, REST-P2 | Pending restaurants, onboarding done, each with an e-mail the tester can read; owners OWN-P, OWN-P2 |
 | REST-P-NOMAIL | Pending, onboarding done, `restaurantEmail` empty |
-| REST-LEG / OWN-LEG | Restaurant created by legacy register (onboarding not done) and its owner, PIN known |
+| REST-LEG / OWN-LEG | Restaurant created by legacy register (onboarding not done) and its owner, PIN known. 04 cases reset `isOnboardingDone = 0` before each use. |
 | PH-NEW2 … | More unused valid mobile numbers (one per registration case) |
 | ADMIN-1 | Active super admin with known username and password |
 | ADMIN-INBOX | The mailbox behind `ADMIN_EMAIL` |
@@ -37,7 +42,7 @@ The approve / reject endpoint is a web form. To call it directly: keep a cookie 
 | 01 | AC7 phone taken meanwhile | T06 | D05, D11 |
 | 01 | AC8 PIN mail fails | — | D13 |
 | 01 | AC9 double tap | T09 | D11 |
-| 01 | AC10 Takeaway switch | T01, T14 | D07 |
+| 01 | AC10 Takeaway switch → channel on / off | T01, T14, T17 | D01, D07 |
 | 01 | Alt: long name, no network, back, rate limit | T07, T08, T10 | D08, D12 |
 | 02 | AC1 Pending screen | T01 | D01 |
 | 02 | AC2 check result | T02, T03 | — |
@@ -47,31 +52,36 @@ The approve / reject endpoint is a web form. To call it directly: keep a cookie 
 | 02 | AC6 logout | T09 | — |
 | 02 | AC7 staff see the same | T10 | — |
 | 02 | AC8 no Contact Support | T11 | — |
-| 02 | Alt: legacy owner stuck; API not blocked; odd value | T12 | D02, D03, D04, D05 |
+| 02 | Alt: legacy owner stuck; odd value | T12 | D04, D05 |
+| 02 | AC9 API refuses unapproved restaurant; `showDetails` exempt (target AUTH-D2) | — | D01, D02, D03 |
+| 02 | AC10 switched off while waiting (target AUTH-D2) | T13 | D06 |
 | 03 | AC1–AC2 accept / reject + mails | T01, T02 | D01, D02 |
 | 03 | AC3 no buttons once decided | T03 | D04, D05, D06 |
 | 03 | AC4–AC5 app reacts | 02-T04, 02-T07 | — |
 | 03 | AC6 only onboarded listed | T04 | 02-D04 |
 | 03 | AC7 mail down | T06 | D13 |
 | 03 | AC8 no session | T07, T08 | D10, D11, D12 |
-| 03 | Alt: unknown id, bad value, repeat, no e-mail | T09 | D03, D07, D09, D15, D16 |
-| 04 | AC1–AC5 | n/a — no UI | D01–D11 |
+| 03 | Alt: repeat, no e-mail, reversal | T09 | D03, D04, D05, D15, D16 |
+| 03 | AC9 bad / missing value (target ONB-D2) | — | D06, D07 |
+| 03 | AC10 unknown id → 404 (target ONB-D2) | — | D09, D18 |
+| 04 | AC1, AC3–AC5 | n/a — no UI | D01, D03–D06, D08, D09, D11 |
+| 04 | AC2, AC6, AC7 (target ONB-D1) | n/a — no UI | D02, D07, D10, D12, D13 |
 
 ## Developer endpoint checklist
 
 | Endpoint | Auth | Account state | Restaurant isolation | Role | Super-admin boundary | Input validation | Business-rule bypass | Over-posting | Concurrency | Rate limit | Injection | Error hygiene |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | `setup` no token (01) | D17 | n/a¹ | D06 | n/a² | n/a³ | D02–D05, D09 | D04, D07 | D06 | D11 | D12 | D10 | D08 |
-| `setup` with token (04) | D05 | D01, D10 | D06 | D02 | n/a³ | D09 | D02, D07 | D03, D06 | D07 | D11 | via 01-D10 | via 01-D08 |
-| approval via API (02) | n/a⁴ | D01–D05 | n/a⁴ | n/a² | n/a³ | n/a⁴ | D02, D03 | n/a⁴ | n/a⁴ | n/a⁴ | n/a⁴ | n/a⁴ |
-| `update-status` (03) | D10, D11 | D16 | D18 | n/a⁵ | D12 | D06, D07, D09 | D04, D05 | D08 | D17 | D14 | D18 | D07 |
+| `setup` with token (04) | D05 | D04, D12 | D06 | D02 | n/a³ | D09 | D10, D13 | D03, D06 | D07 | D11 | via 01-D10 | via 01-D08 |
+| approval via API (02) | n/a⁴ | D01–D06 | n/a⁴ | n/a² | n/a³ | n/a⁴ | D02, D03 | n/a⁴ | n/a⁴ | n/a⁴ | n/a⁴ | n/a⁴ |
+| `update-status` (03) | D10, D11 | D16 | D18 | n/a⁵ | D12 | D06, D07, D09 | D04, D05 | D08 | D17 | D14 (no limiter; none asked for) | D18 | D07 |
 
 1. No account exists yet.
-2. ONB has no role rules (04 records that any role is accepted — ONB-D1).
+2. No account or role yet (01), or the check belongs to another feature (02). The token path (04) has a role rule only in the target: owner only (ONB-D1, X-D1).
 3. Not a panel endpoint.
 4. Uses other features' endpoints only to show that approval isn't enforced; their own categories belong to those features.
 5. One super-admin role only.
 
 ## How to run the developer cases
 
-PHPUnit feature tests (decided 2026-11-13): `laravel-pos-api-dev_guid/tests/Feature/<FeatureFolder>/`, one class per use case, one test method per case ID. API cases: standard headers from the AUTH test README. Panel cases: see *Panel requests* above. Read e-mails with MAIL-OK; check the database with a SQL client.
+PHPUnit feature tests (decided 2026-11-13): `laravel-pos-api/api/tests/Feature/<FeatureFolder>/`, one class per use case, one test method per case ID. API cases: standard headers from the AUTH test README. Panel cases: see *Panel requests* above. Read e-mails with MAIL-OK; check the database with a SQL client.

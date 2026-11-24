@@ -33,6 +33,7 @@ A signed-in user logs out from the drawer (phone) or the nav rail (tablet) after
 - **Token already invalid.** Server answers 401; the device signs out anyway.
 - **Other devices.** Stay signed in — logout ends only this device's session.
 - **Requests in flight.** Any request other than logout is cancelled while signing out.
+- **User or restaurant switched off / not approved.** Logout still succeeds (200) — today because nothing is checked, in the target because `logout` is exempt from the X-D2 checks (AUTH-D2).
 
 ## Acceptance criteria
 

@@ -1,6 +1,6 @@
 # Sign-in & PIN — UI / UX
 
-App conventions are in `POS_APP-master/CLAUDE.md`. Text below is **verbatim** from the app (2026-11-05) or, where marked *(server)*, the API message the app shows as is. Tester cases quote it.
+App conventions are in `POS_APP-kot/CLAUDE.md`. Text below is **verbatim** from the app (2026-11-05; every string re-checked present in `POS_APP-kot` on 2026-11-24) or, where marked *(server)*, the API message the app shows as is. Rows marked *(target, AUTH-Dn)* describe agreed fixes that are not built yet. Tester cases quote it.
 
 ## 1. Screens and entry points
 
@@ -89,15 +89,20 @@ Inline messages (checked as the user types):
 |---|---|---|
 | Phone step | Loading | `Continue` shows a spinner and is disabled |
 | Phone step | Server / network error | Red text under the field: *(server message)*, else `Could not check this number` |
-| Phone step | Session ended by the server | Red text: `Your session has ended. Please log in again.` |
+| Phone step | Session ended by the server (401) | Red text: `Your session has ended. Please log in again.` |
+| Phone step | *(target, AUTH-D2)* Signed out because the user was switched off | Red text: *(server)* `Your account is inactive.` |
+| Phone step | *(target, AUTH-D2)* Signed out because the restaurant was switched off | Red text: *(server)* `Your restaurant is inactive.` |
+| Any screen | *(target, AUTH-D2)* Restaurant approval withdrawn while signed in | The Pending-approval / Rejected screen (ONB) replaces the app; still signed in |
 | PIN step | Loading | `Login` shows a spinner |
 | PIN step | Wrong PIN | *(server)* `Invalid PIN` |
 | PIN step | Switched-off user | *(server)* `Your account is inactive.` |
+| PIN step | *(target, AUTH-D2)* Switched-off restaurant | *(server)* `Your restaurant is inactive.` — today the sign-in succeeds |
 | PIN step | Too many tries | *(server)* `Too Many Attempts.` |
 | PIN step | Other failure / no network | *(server message)*, else `Login failed` |
 | PIN step | Reset sent | Green text: *(server)* `A new PIN has been sent to <masked e-mail>` |
 | PIN step | Reset failed | *(server)* `No email is registered for this account. Please contact support.` / `Could not send the PIN email. Please try again later.` / `Too Many Attempts.`, else `Could not send a new PIN` |
 | Change PIN | Wrong current PIN | *(server)* `Current PIN is incorrect` |
+| Change PIN | *(target, AUTH-D7)* 6th try within a minute | *(server)* `Too Many Attempts.`; stays on the screen, still signed in |
 | Change PIN | Other failure / no network | *(server message)*, else `Could not change PIN` |
 | Change PIN | Success | No message; the app opens (Home, or KOT for chefs) |
 | Error text | Cleared | When the user edits the phone, edits the PIN, or taps `Change Phone Number` |

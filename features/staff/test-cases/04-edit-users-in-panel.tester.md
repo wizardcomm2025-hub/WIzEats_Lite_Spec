@@ -11,7 +11,7 @@ Run in a desktop browser, signed in to the panel as ADMIN-1, on REST-A's user ma
 | STAFF-04-T03 | AC3 | Edit WTR-A; Status `Inactive`; `Update`. App (OWN-A): reopen User Management; tap `Add Staff`. | Alert; app row `Inactive` and faded; the `Waiter` chip is free; a new waiter can be created. WTR-A's next sign-in is refused. |
 | STAFF-04-T04 | AC4 | Click `+ Add User`. | Nothing happens. |
 | STAFF-04-T05 | AC5 | Click CHF-A's Active switch so it turns off; reload the page. | After reload the switch is on again; the app still shows CHF-A `Active`. |
-| STAFF-04-T06 | AC6 (accepted STAFF-D3) | Edit WTR-A; Role `owner`; `Update`. WTR-A signs in on the app. | Alert; after sign-in WTR-A sees the owner's menus (Setup, Profile, Dashboard…). |
-| STAFF-04-T07 | Alt: unknown role | Edit WTR-A; Role `manager`; `Update`. WTR-A signs in. OWN-A opens User Management. | WTR-A gets no menus; WTR-A is missing from OWN-A's staff list. |
+| STAFF-04-T06 | AC6 | Edit WTR-A; Role `owner`; `Update`. WTR-A signs in on the app. | Alert; after sign-in WTR-A sees the owner's menus (Setup, Profile, Dashboard…). `owner` stays a valid panel role in the target. |
+| STAFF-04-T07 | AC8 — *Fails until STAFF-D6 is fixed* | Edit WTR-A; Role `manager`; `Update`. Reload the page. | No alert; after reload WTR-A's role is still `waiter`; OWN-A's app still lists WTR-A. (Today: alert; WTR-A gets no menus and drops out of OWN-A's staff list.) |
 | STAFF-04-T08 | AC7 | Open the dialog for WTR-A; in another tab log out of the panel; back in the first tab click `Update`. Sign in again and look. | No alert, no reload; WTR-A unchanged. |
 | STAFF-04-T09 | Encoding / HTML | Edit WTR-A; Name `<b>Bold</b> রাহুল`; `Update`. | The list shows the text literally, not bold; the app shows the same text. |

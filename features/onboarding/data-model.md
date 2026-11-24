@@ -1,6 +1,6 @@
 # Onboarding & approval — data model
 
-Source: `db_script/tables/tables.sql`, `app/Services/Restaurant/RestaurantService.php::onboard`, `app/Http/Controllers/Admin/AdminController.php::updateStatus`. ONB adds no tables or columns.
+Source: `db_script/pos_stage.sql` (re-checked 2026-11-24: no ONB table changed), `app/Services/Restaurant/RestaurantService.php::onboard`, `app/Http/Controllers/Admin/AdminController.php::updateStatus`. ONB adds no tables or columns.
 
 ## Tables written
 
@@ -11,7 +11,7 @@ Source: `db_script/tables/tables.sql`, `app/Services/Restaurant/RestaurantServic
 | `restaurant_configs` | 01, 04 | Upsert by `restaurantId` |
 | `zones` | 01, 04 | Upsert by `restaurantId` only: the restaurant's first zone (or a new one) becomes `Main Hall`, `isActive = 1` |
 | `tables` | 01, 04 | `Table 1`–`Table 4`, capacity 4, active — only if that zone has no tables |
-| `order_channels` | 01, 04 | Upsert per `(restaurantId, channelCode)` for the four codes |
+| `order_channels` | 01, 04 | Upsert per `(restaurantId, channelCode)` for the four codes; `channelName` and `isActive` overwritten (04 therefore also switches the caller's channels on / off) |
 | `personal_access_tokens` | 01, 04 | One token (`pos-token`) for the owner / caller |
 
 ## Values set by register (01)
@@ -31,7 +31,8 @@ Source: `db_script/tables/tables.sql`, `app/Services/Restaurant/RestaurantServic
 | `users.name` | The owner name |
 | `restaurant_configs.enableRestaurant`, `enableDelivery`, `enableTakeAway`, `enableKOT`, `enableRoomService` | From the request (the app sends `true`, `false`, toggle, `true`, `false`) |
 | `restaurant_configs.restaurantCode` | 6 random upper-case letters / digits, unique across restaurants; kept if one exists |
-| `order_channels` | `DINE_IN` Dine In · `TAKEAWAY` Takeaway · `ROOM_SERVICE` Room Service · `DELIVERY` Delivery — all four, whatever the settings |
+| `order_channels` | `DINE_IN` Dine In · `TAKEAWAY` Takeaway · `ROOM_SERVICE` Room Service · `DELIVERY` Delivery — all four rows always exist |
+| `order_channels.isActive` | `DINE_IN` 1 (even with `enableRestaurant` false); `TAKEAWAY` = `enableTakeAway`; `ROOM_SERVICE` = `enableRoomService`; `DELIVERY` = `enableDelivery` — so from the app: Dine In on, Takeaway as switched, Room Service and Delivery off |
 
 ## Rules
 
@@ -39,7 +40,7 @@ Source: `db_script/tables/tables.sql`, `app/Services/Restaurant/RestaurantServic
 - E-mails go out **after** the commit; a mail failure never undoes onboarding.
 - No `restaurantEmail` uniqueness: two restaurants may share an e-mail.
 - `restaurants.restaurantName` is `varchar(255)`: a longer name fails the whole transaction (500).
-- Approve / reject (03) writes `isApproved` exactly as posted (ONB-D2). A non-numeric or missing value fails in the database (strict mode) and nothing changes.
+- Approve / reject (03) writes `isApproved` exactly as posted (ONB-D2). A non-numeric or missing value fails in the database (strict mode) and nothing changes. **Target:** only 0, 1 or 2 is ever written.
 - `isApproved` is never reset by onboarding, legacy setup or profile edits.
 
 ## Status values

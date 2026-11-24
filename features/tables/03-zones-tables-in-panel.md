@@ -38,9 +38,9 @@ A super admin manages a restaurant's zones and tables on two panel pages. On bot
 
 ## Alternative flows
 
-- **Empty name or capacity.** The database refuses it (500). The page shows no alert and doesn't reload; nothing is saved.
-- **Duplicate table or zone name.** Saved (TBL-D2).
-- **Capacity `0`, `-3` or text.** `0` and `-3` are saved; text gives a 500 and nothing is saved.
+- **Empty name or capacity.** The database refuses it (500; target 422). The page shows no alert and doesn't reload; nothing is saved.
+- **Duplicate table or zone name.** Today saved. *Target (TBL-D2):* refused (422); no alert, nothing saved.
+- **Capacity `0`, `-3` or text.** Today `0` and `-3` are saved; text gives a 500 and nothing is saved. *Target:* all refused (422), no alert.
 - **Session or CSRF expired.** Nothing happens.
 
 ## Acceptance criteria
@@ -57,7 +57,7 @@ A super admin manages a restaurant's zones and tables on two panel pages. On bot
 
 ### POS API
 
-- Web routes behind `web` (CSRF) and `auth:admin`. `AdminController` has no validation.
+- Web routes behind `web` (CSRF) and `auth:admin`. `AdminController` has no validation today; target TBL-D2 rules (422 / 404).
 - `updateTable` writes **every** field it is sent except `id`, `tableId`, `zoneId` and `restaurantId` (`zoneId` is converted to binary). So it can also set `status`, `isDelete` or any other column.
 
 ### Data — MySQL

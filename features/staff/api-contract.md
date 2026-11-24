@@ -1,6 +1,6 @@
 # Staff management — API contract
 
-Shared shapes: [project-overview.md → API conventions](../../project-overview.md#api-conventions). Facts from the code on 2026-11-10.
+Shared shapes: [project-overview.md → API conventions](../../project-overview.md#api-conventions). Facts from the code on 2026-11-10, re-checked 2026-11-24 (API commit d54d6c8). Rows marked **Target** describe agreed fixes and are not in the code yet.
 
 ## Endpoints
 
@@ -8,11 +8,11 @@ Shared shapes: [project-overview.md → API conventions](../../project-overview.
 |---|---|---|---|---|
 | `POST /api/staff/getStaffDetails` | `auth:sanctum`, `restaurant.tenant` | none | App | [01](./01-see-staff-list.md) |
 | `POST /api/staff/create` | `auth:sanctum`, `restaurant.tenant` | none | App (owner) | [02](./02-add-staff.md) |
-| `POST /api/staff/update` | `auth:sanctum`, `restaurant.tenant` | none | App (owner) — fails today (STAFF-D1) | [03](./03-switch-staff-on-off.md) |
+| `POST /api/staff/update` | `auth:sanctum`, `restaurant.tenant` | none | App (owner) — works since 2026-11-17 (STAFF-D1 fixed) | [03](./03-switch-staff-on-off.md) |
 | `GET /admin/user-management/{restaurantId}` (web) | `web`, `auth:admin` | none | Panel | [04](./04-edit-users-in-panel.md) |
 | `POST /admin/user/update` (web) | `web` (CSRF), `auth:admin` | none | Panel | [04](./04-edit-users-in-panel.md) |
 
-There is no role check on any endpoint (STAFF-D3). The common failures of the three API endpoints:
+Today there is no role check on any endpoint (STAFF-D3). **Target (X-D1):** `create` and `update` owner only → 403 `{ "status": false, "message": "You do not have permission to perform this action", "data": null }`; `getStaffDetails` every role, but a waiter / chef gets only their own row. The common failures of the three API endpoints:
 
 | Situation | HTTP | Body |
 |---|---|---|
@@ -21,7 +21,7 @@ There is no role check on any endpoint (STAFF-D3). The common failures of the th
 | `GET` instead of `POST` | 405 | Method Not Allowed |
 | Validation | 422 | `{ "status": false, "message": "<first error>", "errors": { … } }` |
 
-A switched-off user, or a Pending / Rejected restaurant, still gets through (AUTH-D2).
+Today a switched-off user, or a Pending / Rejected restaurant, still gets through (AUTH-D2). **Target (X-D2):** 403 `Your account is inactive.` / `Your restaurant is not approved.` / `Your restaurant is inactive.`
 
 ---
 
@@ -36,6 +36,7 @@ A switched-off user, or a Pending / Rejected restaurant, still gets through (AUT
 | OK | 200 | `{ "status": true, "message": "Staff members fetched successfully", "data": [ …users ] }` — the caller's restaurant's users with role waiter / chef (any case), optionally only `userId`. Each user: `userId`, `restaurantId` (hex), `name`, `phone`, `role`, `status` (bool), `mustChangePin` (bool), `createdBy`, `countryCode`, `email`, `phone_verified_at`, `created_at`, `updated_at`. No `pin`. |
 | `userId` of another restaurant, of the owner, or unknown | 200 | `data: []` |
 | `userId` not hex / odd length | 500 | `{ "status": false, "message": "Failed to fetch staff members", "data": null }` |
+| **Target (X-D1)** caller is a waiter / chef | 200 | `data` = [the caller's own row] only, whatever `userId` is sent (today: the whole list, or the asked-for row) |
 
 ---
 
@@ -45,14 +46,15 @@ A switched-off user, or a Pending / Rejected restaurant, still gets through (AUT
 |---|---|---|
 | `name` | required, string, max 255 | `The name field is required.` / `The name field must be a string.` / `The name field must not be greater than 255 characters.` |
 | `phone` | required, regex `^[6-9][0-9]{9}$` (a JSON number is accepted) | `The phone field is required.` / `The phone field format is invalid.` |
-| `role` | required, string — **any text** (STAFF-D3) | `The role field is required.` / `The role field must be a string.` |
+| `role` | required, string — **any text** today (STAFF-D3). **Target:** `chef` or `waiter`, any case, stored as sent | `The role field is required.` / `The role field must be a string.` / target `The selected role is invalid.` |
 
 Other fields (`restaurantId`, `status`, `pin`, `mustChangePin`, `userId`) are ignored.
 
 | Situation | HTTP | Body |
 |---|---|---|
 | Created | 200 | `{ "status": true, "message": "Staff member created successfully", "data": { userId, restaurantId, name, phone, role, status: true, mustChangePin: true, createdBy, created_at, updated_at } }` — no `pin` |
-| Phone already used anywhere | 500 | `{ "status": false, "message": "Failed to create staff member", "data": null }` (STAFF-D3) |
+| Phone already used anywhere | 500 | `{ "status": false, "message": "Failed to create staff member", "data": null }` (STAFF-D3). **Target:** 422 `This phone number is already registered.` |
+| **Target (STAFF-D5)** an active user with the same role exists | 422 | `{ "status": false, "message": "You can have 1 active chef and 1 active waiter.", "data": null }` — nothing written (today: created) |
 
 **Writes:** one `users` row — caller's restaurant, `status = 1`, PIN `123456` hashed (STAFF-D4), `mustChangePin = 1`, `createdBy` = caller's role.
 
@@ -64,15 +66,17 @@ Other fields (`restaurantId`, `status`, `pin`, `mustChangePin`, `userId`) are ig
 |---|---|---|
 | `userId` | required, string; used as 32-character hex | `The user id field is required.` |
 | `name` | required, string, max 255 | `The name field is required.` … |
-| `status` | required, boolean | `The status field is required.` / `The status field must be true or false.` |
+| `isActive` | required, boolean (was `status` until 2026-11-17) | `The is active field is required.` / `The is active field must be true or false.` |
 
-The app sends `isActive` instead of `status`, so it always gets the `status` message (STAFF-D1). `role`, `phone` and `restaurantId` are ignored.
+The app sends exactly `{ userId, name, isActive }`. `status`, `role`, `phone` and `restaurantId` are ignored.
 
 | Situation | HTTP | Body |
 |---|---|---|
-| Updated (**any** restaurant's user — STAFF-D2) | 200 | `{ "status": true, "message": "Staff member updated successfully", "data": null }` — `data` is always null |
+| Updated (today **any** restaurant's user — STAFF-D2) | 200 | `{ "status": true, "message": "Staff member updated successfully", "data": { …user, no pin } }` (until 2026-11-17 `data` was null) |
 | Valid hex, no such user | 404 | `{ "status": false, "message": "Staff member not found", "data": null }` |
-| `userId` not hex / odd length | 500 | `{ "status": false, "message": "Failed to update staff member", "data": null }` |
+| **Target (STAFF-D2)** another restaurant's user, an owner, or the caller | 404 | same body (today: 200, updated) |
+| `userId` not hex / odd length | 500 | `{ "status": false, "message": "Failed to update staff member", "data": null }`. **Target (X-D4):** 404 `Staff member not found` |
+| **Target (STAFF-D5)** `isActive: true` while another active user has the same role | 422 | `{ "status": false, "message": "You can have 1 active chef and 1 active waiter.", "data": null }` (today: saved) |
 
 **Writes:** `users.name`, `users.status` and `updated_at`.
 
@@ -82,7 +86,7 @@ The app sends `isActive` instead of `status`, so it always gets the `status` mes
 
 ### `GET /admin/user-management/{restaurantId}`
 
-32-character hex or a dashed UUID. Lists all users of the restaurant (any role), 3 per page (`?page=n`), with `userId` as hex. An unknown ID gives an empty table.
+32-character hex or a dashed UUID. Lists all users of the restaurant (any role), 3 per page (`?page=n`), with `userId` as hex. An unknown ID gives an empty table (target X-D4: 404).
 
 ### `POST /admin/user/update`
 
@@ -90,10 +94,10 @@ JSON `{ id, name, role, status }`, header `X-CSRF-TOKEN`.
 
 | Situation | Result |
 |---|---|
-| Any values | `name`, `role`, `status` set as sent (empty → NULL; `updated_at` not set); `{ "success": true }` |
-| Unknown `id` | Nothing changes; `{ "success": true }` |
-| `id` missing | 500 |
-| `status` missing / empty / not 0–1 numeric | 500 (NOT NULL / strict mode) — nothing saved |
+| Any values | `name`, `role`, `status` set as sent (empty → NULL; `updated_at` not set); `{ "success": true }`. **Target (STAFF-D6):** `name` required; `role` in `owner` / `waiter` / `chef` (any case); `status` in `0` / `1`; else 422 `{ "message": "<first error>", "errors": {…} }` |
+| Unknown `id` | Nothing changes; `{ "success": true }`. **Target:** 404 |
+| `id` missing | 500. **Target:** 422 `The id field is required.` |
+| `status` missing / empty / not 0–1 numeric | 500 (NOT NULL / strict mode) — nothing saved; `"5"` is stored. **Target:** 422 |
 | `phone`, `pin`, `restaurantId` sent | Ignored |
 | No panel session | 302 to `/`; JSON 401 `{ "message": "Unauthenticated." }` |
 | No / wrong CSRF | 419 |

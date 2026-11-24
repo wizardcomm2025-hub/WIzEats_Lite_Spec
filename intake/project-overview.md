@@ -91,7 +91,7 @@ Questions and answers from grill-me / spec-intake sessions or any other clarify-
 - **Q:** Role permissions: record the app's menus, or define target rules for the API to enforce?
   **A:** Record the app's menus as the role rules. API enforcement stays an accepted gap, per feature. (2026-11-13)
 - **Q:** Developer test runner?
-  **A:** PHPUnit 11 feature tests in `laravel-pos-api-dev_guid/tests/Feature/<FeatureFolder>/`: one class per use case, one method per case ID. (2026-11-13)
+  **A:** PHPUnit 11 feature tests in `laravel-pos-api/api/tests/Feature/<FeatureFolder>/`: one class per use case, one method per case ID. (2026-11-13)
 - **Q:** POS app languages?
   **A:** English only. The app has no translation library. (2026-11-13)
 

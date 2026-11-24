@@ -1,6 +1,6 @@
 # Order history — UI / UX
 
-Screen text exactly as in the code on 2026-11-11. Only the parts testers check are listed.
+Screen text exactly as in the code on 2026-11-11; re-checked in `POS_APP-kot` 2026-11-24. Only the parts testers check are listed.
 
 ## 1. Screen
 
@@ -9,7 +9,7 @@ Screen text exactly as in the code on 2026-11-11. Only the parts testers check a
 | Entry | Phone drawer `Order History`; tablet rail `Orders` (owner, waiter) |
 | Tabs | `Live` · `History`, each with the server's count |
 | Search | `Search by order number or amount` |
-| Date chips | `Today` · `7 days` · `15 days` · `30 days`; `Reset` when filters are on |
+| Date chips | `Today` · `7 days` · `15 days` · `30 days`; `Reset` when filters are on. Target: History tab only (HIST-D2) |
 | Filters button | badge with the number of active filters |
 | Errors | Toast with the server's message, or `Failed to fetch orders` |
 | Empty Live | `No Live Orders` · `Orders still awaiting payment will show up here. Pull down to refresh.` |
@@ -21,18 +21,18 @@ Screen text exactly as in the code on 2026-11-11. Only the parts testers check a
 
 | Part | Live | History |
 |---|---|---|
-| Title | `Order No. <number>` · `Pending` (amber) · `Bill generated` for a billed order | `Order No. <number>` · `Paid` (green) |
-| Subtitle | `<channel> · <n> item(s)` | `<channel> · <n> item(s) · <dd/Mon/yyyy hh:mm AM/PM>` |
-| Total | `₹<subTotal>` `Sub Total` (HIST-D2) | `₹<grandTotal>` `Grand Total` |
+| Title | `Order No. <number>` · `Pending` (amber) · `Bill generated` for a billed order | `Order No. <number>` · `Paid` (green) (or the server's `Partial` / `Unpaid`) |
+| Subtitle | `<channel> · <n> item(s)` (target: plus the date and time — HIST-D2) | `<channel> · <n> item(s) · <dd/Mon/yyyy hh:mm AM/PM>` |
+| Total | `₹<subTotal>` `Sub Total` (accepted, also for a billed order) | `₹<grandTotal>` `Grand Total` |
 | Expanded | lines (`ITEM` / `AMOUNT`, price × quantity), `Discount`, `Tax and round-off are added when the bill is generated.` | payment chips (`CASH`, `UPI`; amounts when split), lines, `Sub Total`, `Discount (<n>%)`, `Tax`, `Round Off` (signed), `Change Returned`, `Grand Total`, `Print Bill No. <n>` (PRN) |
-| Button | `Bill Payment` → `Loading Bill…` (never opens — BILL-D2) | — |
+| Button | `Bill Payment` → `Loading Bill…`, then Bill Payment (BILL-D2 fixed) | — |
 
 ## 3. Filter sheet
 
 | Part | Content |
 |---|---|
 | Channel | `Order Channel`: `All Channels`, then each active channel |
-| Payment | `All`, `Cash`, `UPI` (one at a time) |
+| Payment | `All`, `Cash`, `UPI` (one at a time); target History only |
 | Dates | `Today`, `Last 7 days`, `Last 15 days`, `Last 30 days`, `Custom` (calendar) |
 | Footer | `Showing <summary>` · `Reset` · `Apply` |
 | Half-picked custom range | Toast `Pick both a start and an end date.` |

@@ -27,11 +27,11 @@ STAFF adds no tables or columns.
 
 ## Rules
 
-- **Uniqueness:** a phone can belong to one user only, across every restaurant. A duplicate insert fails in the database, which gives a 500.
-- **Roles:** the database stores any text. The app recognises `owner`, `waiter` and `chef` in any case. The staff list query matches `waiter` / `chef` regardless of case (`utf8mb4_unicode_ci`).
+- **Uniqueness:** a phone can belong to one user only, across every restaurant. A duplicate insert fails in the database, which gives a 500 (target STAFF-D3: 422).
+- **Roles:** the database stores any text (target: the API accepts only `chef` / `waiter`, the panel only `owner` / `waiter` / `chef` — STAFF-D3, STAFF-D6). The app recognises `owner`, `waiter` and `chef` in any case. The staff list query matches `waiter` / `chef` regardless of case (`utf8mb4_unicode_ci`).
 - **Responses:** `pin`, `password` and `remember_token` are hidden from JSON. IDs are returned as 32-character hex.
-- **Limit:** at most one active chef and one active waiter — app only.
+- **Limit:** at most one active chef and one active waiter — today checked only by the app's Add Staff sheet; target also by the server on create / switch-on and by the app's switch (STAFF-D5). Panel exempt.
 - **Isolation:**
   - the list is filtered by the caller's restaurant;
   - create always uses the caller's restaurant;
-  - update is **not** filtered (STAFF-D2).
+  - update is **not** filtered today (STAFF-D2); target: only waiters / chefs of the caller's restaurant.

@@ -48,16 +48,16 @@
     </header>
 
     <h2>v1 scope</h2>
-    <p>Three use cases: see ready orders, mark a KOT delivered, and the waiter dashboard. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour</strong>; WAIT-D1 to D3 keep the current rules as accepted risks.</p>
+    <p>Three use cases: see ready orders, mark a KOT delivered, and the waiter dashboard. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour plus targets</strong> (re-synced 2026-11-24; no WAIT code changed): WAIT-D1 to D3 are <em>To fix</em>.</p>
 
     <h2>How it works end-to-end</h2>
     <p>Ready Orders polls <code>waiter/ready-kots</code> every 15 s for status-4, un-picked KOTs. <code>Delivered to Customer</code> posts <code>waiter/updatePickedUpStatus/{kotId}</code>, and the app moves the card to an in-memory Delivered tab. The dashboard posts <code>waiter/dashboard</code> for the caller's order counts and today's top items.</p>
 
     <h2>What matters where you sit</h2>
     <div class="card"><h3>POS API</h3><ul>
-      <li>Both KOT endpoints return raw binary <code>kotId</code>s, so a non-empty reply fails JSON encoding with a 500 (WAIT-D1).</li>
-      <li>The pick-up update uses the path text as is (hex never matches), has no role, restaurant or stage check, and its reply lists every restaurant's picked-up KOTs (WAIT-D2).</li>
-      <li><code>totalOrders</code> has no date filter; top items count fulfilled orders from today only (WAIT-D3).</li>
+      <li>Both KOT endpoints return raw binary <code>kotId</code>s, so a non-empty reply fails JSON encoding with a 500 (WAIT-D1). Target: hex IDs plus <code>kotNumber</code> / <code>orderNumber</code>.</li>
+      <li>The pick-up update uses the path text as is (hex never matches), has no role, restaurant or stage check, and its reply lists every restaurant's picked-up KOTs (WAIT-D2). Target: waiter only, own restaurant (404), Ready and once only (409), reply = that KOT.</li>
+      <li><code>totalOrders</code> has no date filter; top items count fulfilled orders from today only (WAIT-D3). Target: every value over today's orders.</li>
     </ul></div>
     <div class="card"><h3>Data — MySQL</h3><ul>
       <li>Pick-up sets <code>isPickedUp</code> / <code>pickedUp_at</code>; <code>status</code> stays 4.</li>
@@ -65,16 +65,20 @@
     </ul></div>
     <div class="card"><h3>POS app</h3><ul>
       <li>Errors are never shown; a failed list looks empty, a failed confirm leaves the card.</li>
-      <li>The Delivered tab is memory only (lost on restart or sign-out).</li>
+      <li>The Delivered tab is memory only (lost on restart or sign-out). Target: loaded from <code>ready-kots</code> with <code>pickedUp: true</code>.</li>
       <li>Revenue, average and turnover are hidden on the dashboard.</li>
     </ul></div>
     <div class="card"><h3>Super-admin panel</h3><p>None.</p></div>
     <div class="card"><h3>Integrations</h3><p>None.</p></div>
 
     <div class="card warn"><h3>Accepted risks (do not "fix" without a new decision)</h3><ul>
-      <li>WAIT-D1: ready list 500s when non-empty; hex pick-up never matches.</li>
-      <li>WAIT-D2: no pick-up rules; reply spans all restaurants; Delivered tab not persisted.</li>
-      <li>WAIT-D3: Total Orders is all-time; top items only today's paid orders.</li>
+      <li>None — all three WAIT decisions are To fix (see the README).</li>
+    </ul></div>
+
+    <div class="card"><h3>To fix (work list)</h3><ul>
+      <li>WAIT-D1 (with KITCH-D1): hex IDs, <code>kotNumber</code> / <code>orderNumber</code>; pick-up by hex within the restaurant; cards show the KOT number. Tests: 01-D02, D09, D10, 02-D01, D07, D13, 01-T03, T04, 02-T01.</li>
+      <li>WAIT-D2: waiter only; Ready-and-once pick-up (409s); reply = that KOT; <code>pickedUp: true</code> list feeds the Delivered tab. Tests: 01-D05, 02-D02–D06, D09, D14, D15, 03-D04, 02-T02, T03.</li>
+      <li>WAIT-D3: dashboard over today's orders. Tests: 03-D01, D02, 03-T01, T04.</li>
     </ul></div>
 
     <div class="meta">

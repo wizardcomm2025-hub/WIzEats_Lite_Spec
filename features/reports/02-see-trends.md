@@ -2,7 +2,7 @@
 
 ## Summary
 
-Under the stat cards, **Revenue Trend** (line chart) and **Order Trend** (bar chart) show paid orders over this week, this month or this year, picked with `Daily` / `Weekly` / `Monthly`. **Today they are empty in practice (RPT-D1).**
+Under the stat cards, **Revenue Trend** (line chart) and **Order Trend** (bar chart) show paid orders over this week, this month or this year, picked with `Daily` / `Weekly` / `Monthly`. **Today the windows use UTC days and the daily trend lists Sunday first (RPT-D2, To fix).**
 
 ## Prerequisites
 
@@ -11,17 +11,17 @@ Under the stat cards, **Revenue Trend** (line chart) and **Order Trend** (bar ch
 
 ## Actors & preconditions
 
-- **Actor:** owner. Any role through the API (RPT-D3).
+- **Actor:** owner. Today any role through the API; target owner only (RPT-D3 / X-D1).
 - **Preconditions:** Dashboard open.
 
 ## Main flow
 
 1. The trend type starts as `Daily`. The app posts `{ trend_type: "daily" }`.
 2. The server groups the restaurant's paid orders:
-   - `daily` — this week Monday–Sunday, by day name (`label` e.g. `Monday`), sorted by `DAYOFWEEK` (Sunday first — RPT-D2);
+   - `daily` — this week Monday–Sunday, by day name (`label` e.g. `Monday`); today sorted by `DAYOFWEEK` (Sunday first), *target* Monday first;
    - `weekly` — this month, `Week 1` … `Week 5` (`CEIL(day / 7)`);
    - `monthly` — this year, by month name (`January` …).
-   It returns `revenue` (`label`, `total_revenue`) and `orders` (`label`, `total_orders`), only for periods that have orders.
+   It returns `revenue` (`label`, `total_revenue` = Σ `grandTotal`) and `orders` (`label`, `total_orders`), only for periods that have orders.
 3. The charts plot those points. Switching the tab reloads only the trend.
 
 ## Alternative flows
@@ -32,7 +32,7 @@ Under the stat cards, **Revenue Trend** (line chart) and **Order Trend** (bar ch
 ## Acceptance criteria
 
 1. Given no paid orders, then both charts show their empty states.
-2. Given paid orders on Monday (2) and Sunday (1) of this week, when `daily` is requested, then `orders` = `[ { label: "Sunday", total_orders: 1 }, { label: "Monday", total_orders: 2 } ]` (RPT-D2).
+2. *(Target, RPT-D2)* Given paid orders on Monday (2) and Sunday (1) of this week, when `daily` is requested, then `orders` = `[ { label: "Monday", total_orders: 2 }, { label: "Sunday", total_orders: 1 } ]`. (Today: Sunday first.)
 3. Given a paid order on the 30th of this month, when `weekly`, then it is under `Week 5`.
 
 ## Platform notes
@@ -59,7 +59,7 @@ None.
 
 ## Configuration
 
-Week starts on Monday (Carbon default); UTC.
+Week starts on Monday (Carbon default); UTC today, IST in the target.
 
 ## Out of scope
 
@@ -67,4 +67,4 @@ Week starts on Monday (Carbon default); UTC.
 
 ## Open questions
 
-- None open.
+- None open. Related decision: RPT-D2.

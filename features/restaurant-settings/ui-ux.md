@@ -1,12 +1,12 @@
 # Restaurant profile & settings — UI / UX
 
-Screen text exactly as in the code on 2026-11-06. `\n` = line break.
+Screen text exactly as in the code on 2026-11-06; app strings re-checked in `POS_APP-kot` 2026-11-24 (unchanged). `\n` = line break.
 
 ## 1. Profile screen
 
 **Where:**
 
-- **Phone:** menu → `Account` → `Profile`, shown for every role (RST-D3). The header's profile button also opens it.
+- **Phone:** menu → `Account` → `Profile`, shown today for every role. *Target (RST-D3):* owner only. The header's profile button also opens it.
 - **Tablet:** the `Profile` button at the bottom of the rail, owner only.
 
 | Part | Content |
@@ -29,7 +29,7 @@ Labels are shown in capitals. When Room Service is on (set in the panel), Card 3
 | Saved | Toast `Profile updated successfully`; form refilled; button grey |
 | Invalid GSTIN on Save | Field red with `Enter a valid 15-character GSTIN, e.g. 22AAAAA0000A1Z5`; toast `Please fix the highlighted fields` |
 | Blank name / owner on Save | Toast `Restaurant name is required` / `Owner name is required` |
-| Server error | Toast with the server's `message`, e.g. `The restaurant email field must be a valid email address.` or `Failed to update restaurant details` |
+| Server error | Toast with the server's `message`, e.g. `The restaurant email field must be a valid email address.` or `Failed to update restaurant details`. Target (RST-D4): validation messages such as `The tax percent field must be at least 0.` instead of the generic failure |
 | No network | Toast `Failed to update restaurant profile` |
 
 Toasts disappear by themselves. The form scrolls above the keyboard; the bottom bar stays.
@@ -52,8 +52,11 @@ Toasts disappear by themselves. The form scrolls above the keyboard; the bottom 
 | QR ID | The UPI QR on Bill Payment (BILL) |
 | Enable Discount | Off hides the discount section on Bill Payment |
 | Show KOT Number on Bill / KOT Name on Bill | Bill header `<name> : <numbers>`, or no KOT numbers when off |
-| Enable Takeaway / Delivery | No visible effect — Home always shows `DINE IN`, `TAKEAWAY`, `ROOM SERVICE`, `DELIVERY` (RST-D1) |
+| Enable Takeaway | Home shows the `TAKEAWAY` tile only while on (RST-D1 fixed 2026-11-16) |
+| Enable Delivery / Enable Room Service (panel only) | Today Home doesn't change (RST-D5). Target: the `DELIVERY` / `ROOM SERVICE` tile shows only while on |
 | Enable Room Service | Owner menu: `Floor Management`, `Room Management` |
+
+Restaurants created before 2026-11-16 show all four tiles until their next Profile save, whatever the settings (target: synced by script — RST-D6).
 
 ## 3. Panel — restaurant management page
 
@@ -69,5 +72,6 @@ Toasts disappear by themselves. The form scrolls above the keyboard; the bottom 
 | Restaurant saved | Browser alert `Restaurant Updated` |
 | Configuration saved | Browser alert `Config Updated` |
 | Server error, session expired, CSRF expired | Nothing — no alert, no message |
+| *Target (RST-D4)* validation refused (422) or unknown restaurant (404) | Nothing — no alert, no message (the page's script is not changed) |
 
 The page doesn't reload after saving. Reload to see the stored values; for example, tax `5` shows as `5.00`.

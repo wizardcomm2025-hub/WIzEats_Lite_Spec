@@ -12,7 +12,7 @@ The owner taps `Add Staff`, enters a name and a phone number, picks Chef or Wait
 
 ## Actors & preconditions
 
-- **Actor:** the owner. Through the API, any signed-in user (STAFF-D3).
+- **Actor:** the owner. Today, through the API, any signed-in user (STAFF-D3); target owner only (X-D1).
 - **Trigger:** taps `Add Staff`.
 - **Preconditions:** fewer than one active chef plus one active waiter; the phone number has no account anywhere.
 
@@ -40,12 +40,13 @@ The owner taps `Add Staff`, enters a name and a phone number, picks Chef or Wait
 
 ## Alternative flows
 
-- **Phone already used** (in this restaurant or any other). 500 `Failed to create staff member`, shown as a toast; the sheet stays open with the values (STAFF-D3).
+- **Phone already used** (in this restaurant or any other). Today 500 `Failed to create staff member`; *target (STAFF-D3)* 422 `This phone number is already registered.` Either way shown as a toast; the sheet stays open with the values.
 - **Name of spaces only.** It passes the app's check, is sent trimmed as `""`, and the server answers 422 `The name field is required.`, shown as a toast.
 - **No network.** Toast `Failed to create staff`.
 - **Double tap.** The button shows a spinner and is disabled while saving, so one request is sent.
-- **Limit reached.** `Add Staff` is greyed. Through the API, a third active waiter can be created (STAFF-D3).
-- **Role `owner` or any other text through the API.** Created as given (STAFF-D3). A user with role `owner` gets the full owner UI after sign-in. An unknown role gets no menus.
+- **Limit reached.** `Add Staff` is greyed. Today, through the API, a second or third active waiter can be created; *target (STAFF-D5)* 422 `You can have 1 active chef and 1 active waiter.`.
+- **Role `owner` or any other text through the API.** Today created as given: a user with role `owner` gets the full owner UI after sign-in; an unknown role gets no menus. *Target (STAFF-D3):* 422 `The selected role is invalid.`
+- **Caller is a waiter or chef (API).** Today created. *Target (X-D1):* 403 `You do not have permission to perform this action`.
 - **Someone else signs in first** with the phone and `123456`, and sets their own PIN (STAFF-D4).
 - **Close the sheet.** The fields are cleared.
 
@@ -56,16 +57,17 @@ The owner taps `Add Staff`, enters a name and a phone number, picks Chef or Wait
 3. Given an active waiter exists, then the `Waiter` chip is greyed with `Already added`.
 4. Given both roles are taken, then `Add Staff` is greyed.
 5. Given each invalid input in step 2, then the matching message shows under the field and nothing is sent.
-6. Given a phone already in use, then the toast `Failed to create staff member` shows and nothing is created.
-7. Given the API is called by WTR-A with role `owner`, then the user is created with role `owner` (STAFF-D3).
+6. Given a phone already in use, then the toast shows (today `Failed to create staff member`; target `This phone number is already registered.`) and nothing is created.
+7. *(Target, STAFF-D3 / X-D1)* Given the API is called by WTR-A, then 403; given OWN-A sends role `owner`, then 422 `The selected role is invalid.` Nothing is created. (Today both create the user.)
+8. *(Target, STAFF-D5)* Given an active waiter exists, when OWN-A creates another waiter through the API, then 422 `You can have 1 active chef and 1 active waiter.`.
 
 ## Platform notes
 
 ### POS API
 
 - `StaffController::store` → `StaffService::create`.
-- Rules: `name` required string max 255; `phone` required, regex `^[6-9][0-9]{9}$`; `role` required string.
-- No uniqueness rule: the database's `users_phone_unique` key refuses a duplicate, which gives a 500.
+- Rules: `name` required string max 255; `phone` required, regex `^[6-9][0-9]{9}$`; `role` required string (target: `chef` / `waiter`).
+- No uniqueness rule today: the database's `users_phone_unique` key refuses a duplicate, which gives a 500 (target 422 — STAFF-D3).
 
 ### Data — MySQL
 

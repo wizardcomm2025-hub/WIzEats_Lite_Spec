@@ -12,9 +12,9 @@ The app reads the restaurant's details, settings, and zones with their tables fr
 
 ## Actors & preconditions
 
-- **Actor:** a signed-in user of the restaurant. In the UI, the tablet shows Profile to the owner only; a phone shows it to every role (RST-D3).
+- **Actor:** a signed-in user of the restaurant. In the UI, the tablet shows Profile to the owner only; a phone shows it to every role today (target RST-D3: owner only). Every role may call `showDetails` (Home needs it).
 - **Trigger:** the app starts or resumes, opens Home / Orders, or the user opens Profile.
-- **Preconditions:** the restaurant is approved (the app's own gate — AUTH-D2) and the user has changed the onboarding PIN.
+- **Preconditions:** the restaurant is approved (today the app's own gate; target X-D2 also the API's, except that `showDetails` is exempt from the approval check) and the user has changed the onboarding PIN.
 
 ## Main flow
 
@@ -43,7 +43,7 @@ The app reads the restaurant's details, settings, and zones with their tables fr
 1. Given OWN-A on a tablet, when Profile opens, then every field shows REST-A's current value, Role shows `owner`, and `Save Changes` is grey.
 2. Given a newly approved restaurant, then Tax Rate shows `0`, Enable Takeaway shows what was chosen at registration, Enable Discount and Show KOT Number on Bill are off, and Primary Contact is the registration phone.
 3. Given any user, then Role and Primary Contact can't be edited.
-4. Given WTR-A on a phone, then the menu shows Profile and it opens with Role `waiter` (RST-D3). Given WTR-A on a tablet, then the rail has no Profile.
+4. *(Target, RST-D3)* Given WTR-A or CHF-A on a phone, then the menu has no Profile (today it shows Profile with Role `waiter` / `chef`). Given WTR-A on a tablet, then the rail has no Profile (today and target).
 5. Given the panel changes the tax rate, when the app re-reads the details, then Profile shows the new value.
 6. Given the panel switches Room Service on, when the app re-reads the details, then the owner's menu shows Floor Management and Room Management.
 7. Given any request, then only the caller's own restaurant is returned.
@@ -64,7 +64,7 @@ Read only. Zones: `isActive = 1`, `isDelete = 0`. Tables: the same, ordered by `
 - `fetchRestaurantData` won't start while another is loading, and asks again if a save landed meanwhile.
 - `restaurantToForm` maps the record to the form.
 - The startup cache is `STORAGE_KEYS.RESTAURANT_DATA`.
-- See finding F1 (IDs compared as numbers).
+- Finding F1 (IDs compared as numbers) resolved 2026-11-24 — IDs are compared as strings.
 
 ### Super-admin panel
 

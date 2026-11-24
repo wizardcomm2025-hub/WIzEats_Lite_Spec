@@ -1,8 +1,13 @@
 # Sign-in & PIN — test cases
 
-Rules: [conventions.md → Test cases](../../../conventions.md#test-cases-test-cases). Results go in `laravel-pos-api-dev_guid/specs/auth/test-results.md`, never here.
+Rules: [conventions.md → Test cases](../../../conventions.md#test-cases-test-cases). Results go in `laravel-pos-api/api/specs/auth/test-results.md`, never here.
 
-**Expected results describe today's behaviour**, as fixed by decisions AUTH-D1 to AUTH-D11 in the [README](../README.md#decisions). Cases that check an accepted risk say so. The one behaviour change, AUTH-D11, is tested by `AUTH-07-D18`, which fails until it is built. No case is blocked.
+**Expected results follow the decision statuses** in the [README](../README.md#decisions) (re-synced 2026-11-24, rules in [conventions.md → Decision status](../../../conventions.md#decision-status)):
+
+- *Accepted* decisions: the case asserts today's behaviour and cites the decision.
+- *To fix* decisions (AUTH-D2, D5, D7, D10, D11): the case asserts the **target** and is tagged `Fails until AUTH-Dn is fixed`. A red result on a tagged case is expected until the fix ships.
+
+No case is blocked.
 
 ## Fixtures
 
@@ -50,7 +55,8 @@ Tokens for developer cases: call `POST /api/auth/loginPin` as the fixture user a
 | 01 | AC9 error clears on edit; double tap; no network | T07, T08, T09 | — |
 | 02 | AC1–AC2 landing by role | T01, T02, T03 | D01 |
 | 02 | AC3 forced change | T04 | D01 |
-| 02 | AC4 pending / rejected / switched-off restaurant | T05, T06 | D12 |
+| 02 | AC4 pending / rejected restaurant | T05, T06 | D12 |
+| 02 | AC11 switched-off restaurant refused (target AUTH-D2) | T06 | D12 |
 | 02 | AC5 wrong PIN; no PIN | T07 | D02, D03 |
 | 02 | AC6 switched-off user | T08 | D04 |
 | 02 | AC7 rate limit | T09 | D09, D10 |
@@ -58,6 +64,7 @@ Tokens for developer cases: call `POST /api/auth/loginPin` as the fixture user a
 | 02 | AC9 PIN never shown / returned | T11 | D01, D17 |
 | 02 | AC10 multiple sessions | T12 | D13 |
 | 02 | Alt: change number; no network | T13, T14 | D05 |
+| 02 | Envelope key (target AUTH-D10) | — | D18 |
 | 03 | AC1 reset sent, masked e-mail | T01 | D01 |
 | 03 | AC2–AC3 old PIN dead, new PIN → Change PIN | T02 | D01 |
 | 03 | AC4 no e-mail | T03 | D03 |
@@ -66,24 +73,31 @@ Tokens for developer cases: call `POST /api/auth/loginPin` as the fixture user a
 | 03 | AC7 masking | T01 | D01 |
 | 03 | AC8 PIN never in app / response | T01 | D01 |
 | 03 | Alt: switched-off user; other sessions; no network | T06, T07 | D08, D11 |
+| 03 | Envelope key (target AUTH-D10) | — | D15 |
 | 04 | AC1 forced screen only | T01 | — |
 | 04 | AC2–AC3 success | T02, T03 | D01 |
 | 04 | AC4 wrong current PIN | T04 | D04 |
 | 04 | AC5–AC6 inline validation | T05, T06 | D05 |
 | 04 | AC7 logout from Change PIN | T07 | — |
 | 04 | AC8 app restart | T08 | — |
-| 04 | Alt: other sessions; no limit; no network | T09, T10 | D01, D08 |
+| 04 | Alt: other sessions; no network | T09, T10 | D01 |
+| 04 | AC9 / Alt: too many tries (target AUTH-D7) | T11 | D08, D15 |
+| 04 | Alt: switched off while on the screen (target AUTH-D2) | — | D09 |
+| 04 | Envelope key (target AUTH-D10) | — | D14 |
 | 05 | AC1–AC3 logout | T01, T02, T03 | D01 |
 | 05 | AC4 token dead | — | D01 |
 | 05 | AC5 other device stays | T04 | D02 |
 | 05 | AC6 offline logout | T05 | — |
 | 05 | AC7 next user starts clean | T06 | — |
+| 05 | Alt: blocked user can still log out (X-D2 exemption) | T09 | D09 |
 | 06 | AC1 resume offline | T01 | — |
 | 06 | AC2–AC3 session ended by server | T02 | D06 |
 | 06 | AC4 401 on `/auth/` doesn't end session | T03 | 04-D04 |
-| 06 | AC5 switched-off user keeps working | T04 | D02 |
+| 06 | AC5 switched-off user signed out (target AUTH-D2) | T04 | D02, D10 |
 | 06 | AC6 no expiry | — | D01 |
-| 06 | Alt: rejected / switched-off restaurant; removed user | T05 | D03, D04, D05 |
+| 06 | AC7 switched-off restaurant signed out (target AUTH-D2) | T06 | D04 |
+| 06 | AC8 approval withdrawn → Pending-approval (target AUTH-D2) | T05, T07 | D03 |
+| 06 | Alt: order of checks; removed user | — | D09, D05 |
 | 07 | AC1–AC7 | n/a — no UI | D01–D20 |
 
 ## Developer endpoint checklist
@@ -95,9 +109,9 @@ Tokens for developer cases: call `POST /api/auth/loginPin` as the fixture user a
 | `checkPhone` (01) | D15 (token ignored) | D11 | n/a¹ | n/a² | n/a³ | D01–D09 | n/a⁴ | D13 | n/a⁵ | D14 | D10 | D16 |
 | `loginPin` (02) | D17 | D04, D12 | D11 | n/a² | n/a³ | D05–D08 | D03 | D11 | D13 | D09, D10 | D14 | D16 |
 | `forgotPin` (03) | D10 | D08 | D09 | n/a² | n/a³ | D05, D13 | D11 | D09 | D12 | D06, D07 | D13 | D14 |
-| `changePin` (04) | D02 | D03, D09 | D06 | n/a² | D13 | D05 | D07 | D06 | D10 | D08 | D11 | D12 |
-| `logout` (05) | D03 | D04 | D06 | n/a² | n/a³ | n/a⁶ | n/a⁴ | D05 | D07 | n/a⁷ | n/a⁶ | D08 |
-| session (06) | D06, D07 | D02–D05 | D08 | n/a² | n/a³ | n/a⁶ | n/a⁴ | D08 | n/a⁵ | n/a⁷ | n/a⁶ | n/a⁸ |
+| `changePin` (04) | D02 | D03, D09 | D06 | n/a² | D13 | D05 | D07 | D06 | D10 | D08, D15 | D11 | D12 |
+| `logout` (05) | D03 | D04, D09 | D06 | n/a² | n/a³ | n/a⁶ | n/a⁴ | D05 | D07 | n/a⁷ (no limiter; none asked for) | n/a⁶ | D08 |
+| session (06) | D06, D07 | D02–D05, D09 | D08 | n/a² | n/a³ | n/a⁶ | D10 | D08 | n/a⁵ | n/a⁷ | n/a⁶ | n/a⁸ |
 | `sendOtp` (07) | n/a⁹ | D01 | n/a¹ | n/a² | n/a³ | D03, D04 | D01 | — | n/a⁵ | D09 | D03 | D19 |
 | `verifyOtp` (07) | D10 | D08 | n/a¹ | n/a² | n/a³ | D11 | D06, D07 | — | n/a⁵ | D09 | D11 | D19 |
 | `register` (07) | n/a⁹ | D13, D14 | D16 | n/a² | n/a³ | D15 | D20 | D16 | D18 | D17 | D15 | D19 |
@@ -112,6 +126,10 @@ Tokens for developer cases: call `POST /api/auth/loginPin` as the fixture user a
 8. No response of its own.
 9. Public endpoint; a token is not used.
 
+**Envelope key (AUTH-D10, target `status`):** 01-D17, 02-D18, 03-D15, 04-D14. All other cases show today's `success` key and do not check its name.
+
+**Role (X-D1):** n/a for every AUTH endpoint — every role may use them, today and in the target.
+
 ## How to run the developer cases
 
-PHPUnit feature tests (decided 2026-11-13): `laravel-pos-api-dev_guid/tests/Feature/<FeatureFolder>/`, one class per use case, one test method per case ID. For one-off checks use curl with the standard request above, and check the database with a SQL client. Each case's "Database after" names the rows to look at.
+PHPUnit feature tests (decided 2026-11-13): `laravel-pos-api/api/tests/Feature/<FeatureFolder>/`, one class per use case, one test method per case ID. For one-off checks use curl with the standard request above, and check the database with a SQL client. Each case's "Database after" names the rows to look at.

@@ -43,7 +43,7 @@ The spec records today's behaviour. Decisions ADM-D1 to ADM-D3 keep the current 
 ## Documents
 
 - [data-model.md](./data-model.md) · [api-contract.md](./api-contract.md) · [ui-ux.md](./ui-ux.md) · [test-cases/README.md](./test-cases/README.md) · [developer-guide.html](./developer-guide.html)
-- Implementation: `laravel-pos-api-dev_guid/specs/admin-panel/` (created with the first plan)
+- Implementation: `laravel-pos-api/api/specs/admin-panel/` (created with the first plan)
 
 ## Depends on
 

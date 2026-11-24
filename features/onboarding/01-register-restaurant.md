@@ -23,7 +23,7 @@ A new owner whose mobile number has no account fills in the restaurant profile. 
 2. The owner enters restaurant name, owner name, e-mail and business address, and optionally switches on Takeaway.
 3. The app checks the fields and sends them with the phone and fixed settings (active, KOT on, delivery off, room service off).
 4. The server validates the request, including that the phone is still unused.
-5. In one transaction the server creates the restaurant (Pending), the owner (active, random PIN, must change PIN), the settings with a unique restaurant code, zone Main Hall with Table 1–4, and the four order channels.
+5. In one transaction the server creates the restaurant (Pending), the owner (active, random PIN, must change PIN), the settings with a unique restaurant code, zone Main Hall with Table 1–4, and the four order channels (Dine In on; Takeaway on only if switched on; Room Service and Delivery off).
 6. After the commit the server e-mails the PIN to the restaurant e-mail and sends the admin notice.
 7. The server answers with the restaurant, a token and `mustChangePin: true`; the app does not keep the token.
 8. The app shows `Success!` / `Restaurant submitted for approval`, then Registration Submitted with the e-mail address.
@@ -54,7 +54,7 @@ A new owner whose mobile number has no account fills in the restaurant profile. 
 7. Given the phone was registered in the meantime, then `This phone number is already registered. Please log in.` shows and nothing is created.
 8. Given the PIN e-mail can't be sent, then registration still completes.
 9. Two quick taps create one restaurant.
-10. Takeaway on → the restaurant's takeaway setting is on; off → off.
+10. Takeaway on → the restaurant's takeaway setting and its Takeaway channel are on, and after approval Home offers Takeaway; off → both off, and Home does not offer Takeaway.
 
 ## Platform notes
 
@@ -64,7 +64,7 @@ A new owner whose mobile number has no account fills in the restaurant profile. 
 
 ### Data — MySQL
 
-One transaction across six tables; values in [data-model.md](./data-model.md#values-set-by-register-01).
+One transaction across six tables (channel `isActive` set from the flags since 2026-11-16); values in [data-model.md](./data-model.md#values-set-by-register-01).
 
 ### POS app
 

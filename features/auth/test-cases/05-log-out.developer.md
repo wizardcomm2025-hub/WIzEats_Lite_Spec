@@ -13,4 +13,5 @@ All requests: `POST /api/auth/logout`, no body unless stated. Probe = `POST /api
 | AUTH-05-D05 | Over-posting | OWN-A token T1 | body `{ "tokenId": "<id of OWN-B's token>", "userId": "<OWN-B id>", "all": true }` | 200 | only T1 deleted; OWN-B's token and OWN-A's other tokens remain |
 | AUTH-05-D06 | Restaurant isolation | OWN-A token | — | 200 | OWN-B's and WTR-A's tokens untouched |
 | AUTH-05-D07 | Concurrency | OWN-A token T1 | two logouts with T1 in parallel | each is 200 or 401; never 500 | T1 deleted; nothing else |
-| AUTH-05-D08 | Error hygiene | OWN-A token | logout while the database is unreachable | 500 · nothing written. The body may include exception text (an `error` field, or Laravel's error output) — accepted risk (AUTH-D5). | unchanged |
+| AUTH-05-D08 | Error hygiene — *Fails until AUTH-D5 is fixed* | OWN-A token | logout while the database is unreachable | 500 · `message: "Something went wrong"` — **no** `error` key, no SQL, file path or class name | unchanged |
+| AUTH-05-D09 | Account state (X-D2 exemption) | (a) WTR-A token, then WTR-A switched off (b) OWN-OFF token (c) OWN-P token | — | 200 · `{ "status": true, "message": "Logged out successfully" }` for all three — logout is never blocked (passes today; must keep passing after AUTH-D2) | each caller's token row deleted |

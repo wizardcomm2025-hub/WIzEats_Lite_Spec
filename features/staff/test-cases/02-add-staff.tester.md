@@ -11,7 +11,7 @@ Unless stated: signed in as OWN-S (no staff) with User Management open. Delete t
 | STAFF-02-T03 | AC3 | After T01, tap `Add Staff`. | `Waiter` chip greyed with `Already added` and can't be picked; `Chef` can. |
 | STAFF-02-T04 | AC4 | After T01, add a chef the same way. | Toast; both listed; `Add Staff` greyed; line `You have 1 active chef and 1 active waiter. Disable one to add another.` |
 | STAFF-02-T05 | AC5 | Open the sheet; tap `Create Staff` with everything empty. Then Phone `5123456789`; then `98765`. | Empty: `Name is required`, `Phone number is required`, `Please select a role` in red. `5123456789` and `98765`: `Enter a valid 10-digit number starting with 6-9`. Nothing created. |
-| STAFF-02-T06 | AC6 (accepted risk STAFF-D3) | Name `Dup`, Phone PH-USED, `Waiter`; `Create Staff`. | Toast `Failed to create staff member`; the sheet stays open with the values; no new row. |
+| STAFF-02-T06 | AC6 — *Fails until STAFF-D3 is fixed* | Name `Dup`, Phone PH-USED, `Waiter`; `Create Staff`. | Toast `This phone number is already registered.` (today: `Failed to create staff member`); the sheet stays open with the values; no new row. |
 | STAFF-02-T07 | Alt: spaces | Name of three spaces, valid phone, `Chef`; create. | Toast `The name field is required.`; nothing created. |
 | STAFF-02-T08 | Alt: no network | Valid values; airplane mode on; create. | Toast `Failed to create staff`; values kept. |
 | STAFF-02-T09 | Alt: double tap | Slow network; tap `Create Staff` several times quickly. | One spinner; one toast; one new row. |

@@ -2,22 +2,26 @@
 
 Use case: [02-manage-rooms.md](../02-manage-rooms.md). Contract: [api-contract.md](../api-contract.md#post-apiroomsroomsave). Fixtures: [README.md](./README.md#fixtures).
 
-JSON with OWN-A's bearer token unless stated. "Failed" = 500 `{ status: false, message: "Failed to save room", data: null }`.
+JSON with OWN-A's bearer token unless stated. "Failed" = 500 `{ status: false, message: "Failed to save room", data: null }`. Cases tagged *Fails until … is fixed* assert the target; today's result is in brackets.
 
 | ID | Category | Request / manipulation | Expected | Database after |
 |---|---|---|---|---|
 | ROOM-02-D01 | — (happy path) | `getRoomsDetails` `{}` | 200 `Rooms retrieved successfully`; rooms `101`, `102` only (`103` inactive is absent); `101` has RUN-R's `orderId`; `status_key` / `status_color` per status | — |
-| ROOM-02-D02 | Input validation (accepted ROOM-D1) | `getRoomsDetails` `{ "floorId": "<FLOOR-G hex>" }` (what the app sends) | 200 `data: []` | — |
-| ROOM-02-D03 | Input validation / Injection (accepted ROOM-D1) | `getRoomsDetails` `{ "roomId": "<101 hex>" }`; `{ "roomId": "' OR 1=1 --" }` | 500 `{ status: false, message: "Failed to retrieve rooms", data: null }` both | — |
-| ROOM-02-D04 | Business rule (accepted ROOM-D1) | `roomSave` `{ "roomName": "201", "floorId": "<FLOOR-G hex>", "capacity": 2 }` | Failed | no row |
-| ROOM-02-D05 | Business-rule bypass / Injection (accepted ROOM-D3) | `roomSave` with `floorId` = (a) `"abc"` (b) `"' OR 1=1 --"` (11 chars) | 200 `room created successfully` both | orphan rows with `floorId` = those bytes padded; they appear in `getRoomsDetails {}` |
-| ROOM-02-D06 | Business rule (accepted ROOM-D1) | `roomSave` `{ "roomId": "<101 hex>", "isActive": false }`; `{ "roomId": "<103 hex>", "isActive": true }` | Failed both | unchanged — `103` stays inactive and unlisted |
+| ROOM-02-D02 | — (happy path; ROOM-D1 fixed) | `getRoomsDetails` `{ "floorId": "<FLOOR-G hex>" }` (what the app sends); then `{ "floorId": "<FLOOR-1 hex>" }` | 200 `101`, `102`; then `data: []` | — |
+| ROOM-02-D03 | Input validation / Injection — *Fails until ROOM-D4 is fixed* | `getRoomsDetails` (a) `{ "roomId": "<101 hex>" }` (b) `{ "roomId": "' OR 1=1 --" }` (c) `{ "floorId": "xyz" }` | (a) 200, [101] (b)(c) 422 `Validation error` (today: 500 `{ status: false, message: "Failed to retrieve rooms", data: null }` for all three) | — |
+| ROOM-02-D04 | — (happy path; ROOM-D1 fixed) | `roomSave` `{ "roomName": "201", "floorId": "<FLOOR-G hex>", "capacity": 2 }`; then `getRoomsDetails` with FLOOR-G | 200 `room created successfully`; `201` listed | one row on FLOOR-G, active, status 0 |
+| ROOM-02-D05 | Business-rule bypass / Injection — *Fails until ROOM-D3 is fixed* | `roomSave` create with `floorId` = (a) `"abcd"` (b) 32 hex of no floor (c) FLOOR-B (d) `"abc"` (e) `"' OR 1=1 --"` | 422 `{ status: false, message: "Invalid floor", data: null }` for all (today: (a)–(c) 200 — orphan or foreign-floor rows that appear in `getRoomsDetails {}`; (d)(e) Failed 500) | no row |
+| ROOM-02-D06 | Business rule (ROOM-D1 fixed) | `roomSave` (a) `{ "roomId": "<102 hex>", "roomName": "102A", "capacity": 4 }` (b) `{ "roomId": "<102 hex>", "isActive": false }` (c) `{ "roomId": "<103 hex>", "isActive": true }` | 200 `room updated successfully` each | (a) name `102A`, capacity 4 (b) `102` inactive, gone from `getRoomsDetails {}` (c) `103` active and listed |
 | ROOM-02-D07 | Input validation | create with (a) no `roomName` (b) no `floorId` (c) no `capacity` (d) `capacity: "two"` (e) `status: 5` | 422: (a) `The room name field is required.` (b) `The floor id field is required.` (c) `The capacity field is required.` (d) `The capacity field must be an integer.` (e) `The selected status is invalid.` | none |
-| ROOM-02-D08 | Business-rule bypass (accepted ROOM-D3) | create with `floorId: "abc"` and `capacity` 0, then -3 | 200 both | stored |
-| ROOM-02-D09 | Input validation | create with `floorId: "abc"`, `roomName` 256 × `a` | Failed | none |
-| ROOM-02-D10 | Role (accepted ROOM-D2) | WTR-A: create with `floorId: "abc"`; CHF-A: `getRoomsDetails {}` | 200 both | one row |
-| ROOM-02-D11 | Restaurant isolation | (a) `getRoomsDetails {}` (b) `roomSave` update with `roomId` = ROOM-B1 hex | (a) no REST-B room (b) Failed | ROOM-B1 unchanged |
-| ROOM-02-D12 | Authentication / Account state / Super-admin / Rate limit | both endpoints: no token → 401; `GET` → 405; OWN-P → 200; NOREST → 403; panel cookie only → 401; 60 calls/min → no 429 | as listed | — |
-| ROOM-02-D13 | Over-posting | create with `floorId: "abc"`, plus `restaurantId: "<REST-B>"`, `version: 9`, `createdBy: "x"` | 200 | row in REST-A; `version` 0; `createdBy` NULL |
-| ROOM-02-D14 | — (duplicate rows, accepted ROOM-D1) | Add a second running order on `101`; `getRoomsDetails {}` | `101` appears twice, once per `orderId` | — |
-| ROOM-02-D15 | Error hygiene | the 500 bodies of D03, D04, D09 | No `error` key, no SQL | — |
+| ROOM-02-D08 | Business-rule bypass — *Fails until ROOM-D3 is fixed* | create on FLOOR-G with `capacity` (a) 0 (b) -3 | 422 `The capacity field must be at least 1.` both (today: 200, stored) | none |
+| ROOM-02-D09 | Input validation — *Fails until ROOM-D3 is fixed* | create on FLOOR-G with `roomName` 256 × `a` | 422 `The room name field must not be greater than 255 characters.` (today: Failed 500) | none |
+| ROOM-02-D10 | Role — *Fails until ROOM-D2 is fixed* | (a) WTR-A creates a room on FLOOR-G (b) WTR-A `{ "roomId": "<102>", "roomName": "X" }` (c) CHF-A `getRoomsDetails {}` (d) CHF-A `{ "roomId": "<102>", "status": 1 }` | 403 `{ status: false, message: "You do not have permission to perform this action", data: null }` for all (today: 200 each) | unchanged |
+| ROOM-02-D11 | Restaurant isolation — (b) *Fails until ROOM-D3 is fixed* | (a) `getRoomsDetails {}` (b) `roomSave` update with `roomId` = ROOM-B1 hex | (a) no REST-B room (b) 404 `{ status: false, message: "Room not found", data: null }` (today: Failed 500) | ROOM-B1 unchanged |
+| ROOM-02-D12 | Authentication / Account state / Super-admin / Rate limit — OWN-P part *Fails until AUTH-D2 is fixed* | both endpoints: no token → 401; `GET` → 405; OWN-P → 403 `Your restaurant is not approved.` (today 200); NOREST → 403; panel cookie only → 401; 60 calls/min → no 429 | as listed | — |
+| ROOM-02-D13 | Over-posting | create on FLOOR-G plus `restaurantId: "<REST-B>"`, `version: 9`, `createdBy: "x"` | 200 | row in REST-A; `version` 0; `createdBy` NULL |
+| ROOM-02-D14 | Business rule — *Fails until ROOM-D4 is fixed* | Add a second running order on `101`; `getRoomsDetails {}` | `101` appears **once**, with the higher `orderId` (today: twice, once per `orderId`) | — |
+| ROOM-02-D15 | Error hygiene | `roomSave` while the database is unreachable | 500 `{ status: false, message: "Failed to save room", data: null }` — no `error` key, no SQL | — |
+| ROOM-02-D16 | Business rule — *Fails until ROOM-D4 is fixed* | `roomSave` `{ "roomId": "<102 hex>", "floorId": "<FLOOR-1 hex>" }`; then `getRoomsDetails` with FLOOR-1 | 200 `room updated successfully`; `102` listed under First Floor (today: Failed 500) | `102` on FLOOR-1 |
+| ROOM-02-D17 | Business rule — *Fails until ROOM-D3 is fixed* | (a) create `101` on FLOOR-G (b) create ` 101 ` on FLOOR-G (c) create `101` on FLOOR-1 (d) rename `102` to `101` | (a)(b)(d) 422 `{ status: false, message: "Room name already exists.", data: null }` (today: 200) (c) 200 — another floor | (c) one row only |
+| ROOM-02-D18 | Role (Room Service order screen) | WTR-A: `{ "roomId": "<102>", "status": "1" }`, then `"0"` | 200 both (today and target) | `102` status 1, then 0 |
+| ROOM-02-D19 | Business rule / Role — *Fails until ROOM-D5 is fixed* | (a) OWN-A `getRoomsDetails` `{ "floorId": "<FLOOR-G>", "includeInactive": true }` (b) the same without the flag (c) WTR-A with the flag | (a) `101`, `102`, `103` (`103` `isActive` false) (b) `101`, `102` (c) 403 `{ status: false, message: "You do not have permission to perform this action", data: null }` (today: (a)(c) the flag is ignored — `101`, `102`) | — |

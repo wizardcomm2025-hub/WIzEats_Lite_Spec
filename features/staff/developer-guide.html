@@ -48,17 +48,18 @@
     </header>
 
     <h2>v1 scope</h2>
-    <p>Four use cases: see the staff list, add a staff member, switch one on or off, and edit users in the panel. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour</strong>; STAFF-D1 to D4 keep the current rules as accepted risks.</p>
+    <p>Four use cases: see the staff list, add a staff member, switch one on or off, and edit users in the panel. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour plus targets</strong> (re-synced 2026-11-24): STAFF-D1 is fixed in code; STAFF-D2, D3, D5, D6 are <em>To fix</em>; STAFF-D4 stays accepted.</p>
 
     <h2>How it works end-to-end</h2>
-    <p>The owner opens <code>UserManagement</code>. The app posts <code>/api/staff/getStaffDetails</code>, and the server returns the restaurant's waiters and chefs. <code>Add Staff</code> posts <code>/api/staff/create</code>, which inserts an active user with PIN <code>123456</code> and <code>mustChangePin</code>. The new member signs in through AUTH and sets their own PIN. The Active switch posts <code>/api/staff/update</code> with <code>isActive</code>, but the server requires <code>status</code>, so the switch fails. In the panel, <code>admin/user-management</code> lists every user and edits name, role and status through <code>/admin/user/update</code>.</p>
+    <p>The owner opens <code>UserManagement</code>. The app posts <code>/api/staff/getStaffDetails</code>, and the server returns the restaurant's waiters and chefs. <code>Add Staff</code> posts <code>/api/staff/create</code>, which inserts an active user with PIN <code>123456</code> and <code>mustChangePin</code>. The new member signs in through AUTH and sets their own PIN. The Active switch posts <code>/api/staff/update</code> with <code>isActive</code>, which the server writes to <code>users.status</code> (working since 2026-11-17). In the panel, <code>admin/user-management</code> lists every user and edits name, role and status through <code>/admin/user/update</code>.</p>
 
     <h2>What matters where you sit</h2>
 
     <div class="card"><h3>POS API</h3><ul>
-      <li>No role checks; no rate limits.</li>
-      <li><code>create</code>: the role can be any text; no uniqueness rule, so a used phone gives a 500.</li>
-      <li><code>update</code>: <code>User::find(hex2bin($userId))</code> with no restaurant filter (STAFF-D2). The response is always <code>data: null</code>. Invalid hex gives a 500.</li>
+      <li>No role checks; no rate limits. Target (X-D1): <code>create</code> / <code>update</code> owner only; waiters and chefs get only their own row from <code>getStaffDetails</code>.</li>
+      <li><code>create</code>: the role can be any text; no uniqueness rule, so a used phone gives a 500. Target (STAFF-D3): role <code>chef</code> / <code>waiter</code>; used phone → 422.</li>
+      <li><code>update</code>: rule <code>isActive</code> (boolean) → <code>users.status</code>; returns the updated user. <code>User::find(hex2bin($userId))</code> with no restaurant filter (STAFF-D2); invalid hex gives a 500. Target: only waiters / chefs of the caller's restaurant, else 404.</li>
+      <li>Target (STAFF-D5): <code>create</code> and switch-on refuse a second active user of the same role — 422 <code>You can have 1 active chef and 1 active waiter.</code></li>
       <li><code>fetch</code>: scoped to the caller's restaurant and to the waiter / chef roles.</li>
     </ul></div>
     <div class="card"><h3>Data — MySQL</h3><ul>
@@ -67,19 +68,24 @@
       <li>The panel update doesn't set <code>updated_at</code>.</li>
     </ul></div>
     <div class="card"><h3>POS app</h3><ul>
-      <li>The one-chef, one-waiter limit lives in <code>staffLimits.ts</code> only.</li>
-      <li><code>UpdateStaffPayload</code> sends <code>isActive</code> (STAFF-D1).</li>
+      <li>The one-chef, one-waiter limit lives in <code>staffLimits.ts</code> and is checked only by Add Staff; the switch allows activating (target STAFF-D5: block it with the limit toast).</li>
+      <li><code>UpdateStaffPayload</code> sends <code>isActive</code>; the slice applies the change locally on success.</li>
       <li>Non-owners fetch only their own row; only the owner sees the switch and <code>Add Staff</code>.</li>
     </ul></div>
-    <div class="card"><h3>Super-admin panel</h3><p><code>+ Add User</code> calls an undefined <code>openAddModal()</code>. The table's switches have no listener. Only the edit dialog saves. Pages show 3 users each.</p></div>
+    <div class="card"><h3>Super-admin panel</h3><p><code>+ Add User</code> calls an undefined <code>openAddModal()</code>. The table's switches have no listener. Only the edit dialog saves. Pages show 3 users each. Target (STAFF-D6): validate name / role / status; 404 for unknown ids. Not held to the staff limit.</p></div>
     <div class="card"><h3>Integrations</h3><p>None. New staff aren't notified.</p></div>
 
     <div class="card warn"><h3>Accepted risks (do not "fix" without a new decision)</h3><ul>
-      <li>STAFF-D1: the app's Active switch always fails with <code>The status field is required.</code></li>
-      <li>STAFF-D2: any signed-in user can rename or switch off any user of any restaurant.</li>
-      <li>STAFF-D3: any role can create staff with any role text, and there is no server-side limit; a used phone gives a 500.</li>
-      <li>STAFF-D4: the fixed first PIN <code>123456</code>.</li>
-      <li>AUTH-D2: switching a user off blocks only the next sign-in.</li>
+      <li>STAFF-D4: the fixed first PIN <code>123456</code> (X-D6).</li>
+    </ul></div>
+
+    <div class="card"><h3>To fix (work list)</h3><ul>
+      <li>STAFF-D2: <code>update</code> owner only; target user must be a waiter / chef of the caller's restaurant (else 404). Tests: 03-D03–D05, D07.</li>
+      <li>STAFF-D3: <code>create</code> owner only; role <code>chef</code> / <code>waiter</code>; used phone → 422 <code>This phone number is already registered.</code> Tests: 02-D05–D07, D12, 02-T06.</li>
+      <li>STAFF-D5: staff limit on the server (create, switch-on) and on the app's switch. Tests: 02-D08, D15, 03-D17, 03-T06.</li>
+      <li>STAFF-D6: panel user edit validation and 404. Tests: 04-D02, D04–D06, D10, 04-T07.</li>
+      <li>X-D1: waiter / chef get only their own row from <code>getStaffDetails</code>. Test: 01-D03.</li>
+      <li>AUTH-D2 (X-D2): switched-off users refused on every call. Tests: 01-D08, 02-D11, 03-D01, D11, 03-T05.</li>
     </ul></div>
 
     <div class="meta">

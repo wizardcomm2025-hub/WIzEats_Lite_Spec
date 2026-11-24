@@ -1,7 +1,7 @@
 # WhizEats POS Lite — HTTP API (OpenAPI placeholder)
 #
 # Decision (2026-11-13): this file will be GENERATED from the Laravel code
-# (laravel-pos-api-dev_guid) by a documentation generator such as Scribe,
+# (laravel-pos-api/api) by a documentation generator such as Scribe,
 # which a developer adds to the API repo in a later plan. It is not written by
 # hand.
 #

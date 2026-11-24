@@ -48,10 +48,10 @@
     </header>
 
     <h2>v1 scope</h2>
-    <p>Three use cases: manage zones in the app, manage tables in the app, and manage zones and tables in the panel. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour</strong>; TBL-D1 to D4 keep the current rules as accepted risks.</p>
+    <p>Three use cases: manage zones in the app, manage tables in the app, and manage zones and tables in the panel. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour plus targets</strong> (re-synced 2026-11-24): TBL-D1 is fixed in the app; TBL-D2 to TBL-D5 are <em>To fix</em>. The tables API code has not changed.</p>
 
     <h2>How it works end-to-end</h2>
-    <p><code>ZoneManagementScreen</code> lists zones from <code>getTablesZoneDetails</code> and saves through <code>ZoneSave</code>: with a <code>zoneId</code> it updates, without one it creates. <code>TableConfigScreen</code> loads every table from <code>getTablesDetails</code> and keeps the selected zone's tables, a filter that never matches today. It saves through <code>tableSave</code>. Home uses <code>/api/restaurants/showDetails</code>, which returns the active zones with their active tables and each table's latest running order.</p>
+    <p><code>ZoneManagementScreen</code> lists zones from <code>getTablesZoneDetails</code> and saves through <code>ZoneSave</code>: with a <code>zoneId</code> it updates, without one it creates. <code>TableConfigScreen</code> loads every table from <code>getTablesDetails</code> and keeps the selected zone's tables (string comparison — fixed in the app); cards can be edited and switched. It saves through <code>tableSave</code>. Home uses <code>/api/restaurants/showDetails</code>, which returns the active zones with their active tables and each table's latest running order.</p>
 
     <h2>What matters where you sit</h2>
 
@@ -59,25 +59,26 @@
       <li>Updates are scoped to the caller's restaurant. A miss is <code>firstOrFail</code>, caught and returned as a 500, not a 404.</li>
       <li>Creating a table checks for a duplicate name within the zone; a rename doesn't. <code>zoneId</code> is never checked against <code>zones</code>.</li>
       <li><code>getTables</code> filters: <code>tableId</code> is ambiguous (500), and <code>zoneId</code> is compared as hex against binary. The join with <code>orders</code> returns one row per running order.</li>
-      <li>No role checks; no rate limits.</li>
+      <li>No role checks; no rate limits. Target (TBL-D3 / X-D1): all four endpoints owner only.</li>
     </ul></div>
     <div class="card"><h3>Data — MySQL</h3><ul>
       <li>A zone's <code>isActive</code>, set through the API, cascades to all its tables, including deleted ones. A zone's <code>isDelete</code> doesn't cascade.</li>
       <li>A <code>tables.status</code> outside 0–2 makes the <code>Table</code> model's <code>match</code> throw, which breaks <code>showDetails</code> and <code>getTablesDetails</code>.</li>
     </ul></div>
     <div class="card"><h3>POS app</h3><ul>
-      <li><code>Number(t.zoneId) === selectedZone.zoneId</code> is never true with hex IDs (TBL-D1). Another case of the GUID-migration comparison problem; compare RST finding F1.</li>
-      <li>The zone slice's <code>loading</code> covers saves, so the whole screen turns into a loader. Zone add and rename errors are never shown.</li>
+      <li>The zone filter now compares hex strings (TBL-D1 fixed; it used <code>Number(...)</code>).</li>
+      <li>The zone slice's <code>loading</code> covers saves, so the whole screen turns into a loader. Zone add and rename errors are never shown (target TBL-D5: keep the sheet open and show the message, like the Table sheet).</li>
       <li>A zone toggle reply has no <code>tableCount</code>, so the card shows <code>Tables: 0</code>.</li>
     </ul></div>
-    <div class="card"><h3>Super-admin panel</h3><p>No validation. The zone switch saves without cascading to tables. The table switch has no listener. <code>updateTable</code> writes every posted key as a column. Deleted rows are listed.</p></div>
+    <div class="card"><h3>Super-admin panel</h3><p>No validation. The zone switch saves without cascading to tables. The table switch has no listener. <code>updateTable</code> writes every posted key as a column. Deleted rows are listed. Target (TBL-D2): validation, uniqueness, 404s, and a fixed list of writable fields.</p></div>
     <div class="card"><h3>Integrations</h3><p>None.</p></div>
 
-    <div class="card warn"><h3>Accepted risks (do not "fix" without a new decision)</h3><ul>
-      <li>TBL-D1: Table Management always shows <code>No Tables Found</code>.</li>
-      <li>TBL-D2: no integrity checks: foreign or missing zones, zone delete leaving tables live, duplicate names on rename, any capacity, an unvalidated panel.</li>
-      <li>TBL-D3: any role can change zones and tables through the API.</li>
-      <li>TBL-D4: broken list filters and duplicate rows.</li>
+    <div class="card"><h3>To fix (work list)</h3><ul>
+      <li>TBL-D2: zone must belong to the restaurant (422 <code>Invalid zone</code>); duplicate table names refused on rename too; unique zone names (422 <code>Zone name already exists.</code>); capacity ≥ 1; max lengths; zone delete deletes its tables; 404 instead of 500 for unknown / foreign rows; same rules in the panel. Tests: 01-D07, D08, D10, D17; 02-D06–D08, D10, D11; 03-D06–D09; 01-T09, T10, 02-T08, 03-T09.</li>
+      <li>TBL-D3: owner only on all four endpoints. Tests: 01-D09, 02-D09, D17.</li>
+      <li>TBL-D4: one row per table; working <code>tableId</code> / <code>zoneId</code> filters. Tests: 01-D14, 02-D15, D20, 02-T10.</li>
+      <li>TBL-D5: Zone sheet shows save errors and stays open. Tests: 01-T07, T09, T10.</li>
+      <li>AUTH-D2 (X-D2). Tests: 01-D12, 02-D17.</li>
     </ul></div>
 
     <div class="meta">

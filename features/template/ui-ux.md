@@ -1,6 +1,6 @@
 # {{FEATURE_NAME}} — UI / UX
 
-POS app conventions (theme colours, shared components, role-based navigation) are in `POS_APP-master/CLAUDE.md`. This file lists what is specific to this feature. Copy text appears **verbatim** — tester cases quote it.
+POS app conventions (theme colours, shared components, role-based navigation) are in `POS_APP-kot/CLAUDE.md`. This file lists what is specific to this feature. Copy text appears **verbatim** — tester cases quote it.
 
 ## 1. Screens and entry points
 

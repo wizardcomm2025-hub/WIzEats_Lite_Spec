@@ -1,6 +1,6 @@
 # {{FEATURE_NAME}} — test cases
 
-Rules: [conventions.md → Test cases](../../../conventions.md#test-cases-test-cases). Results go in `laravel-pos-api-dev_guid/specs/<feature>/test-results.md`, never here.
+Rules: [conventions.md → Test cases](../../../conventions.md#test-cases-test-cases). Results go in `laravel-pos-api/api/specs/<feature>/test-results.md`, never here.
 
 ## Fixtures
 
@@ -34,4 +34,4 @@ Each endpoint × category has at least one developer case, or `n/a` with the rea
 
 ## How to run the developer cases
 
-PHPUnit feature tests in `laravel-pos-api-dev_guid/tests/Feature/<FeatureFolder>/`: one class per use case, one test method per case ID (e.g. `test_{{FEATURE_CODE}}_01_D01`). Tokens via `POST /api/auth/loginPin` per fixture user (or `Sanctum::actingAs`). Check the database with assertions or a SQL client (`HEX()` for IDs).
+PHPUnit feature tests in `laravel-pos-api/api/tests/Feature/<FeatureFolder>/`: one class per use case, one test method per case ID (e.g. `test_{{FEATURE_CODE}}_01_D01`). Tokens via `POST /api/auth/loginPin` per fixture user (or `Sanctum::actingAs`). Check the database with assertions or a SQL client (`HEX()` for IDs).

@@ -2,7 +2,7 @@
 
 ## Summary
 
-Three endpoints return an empty CSV template, with a header row only, for the zone, menu and floor files. They don't export the restaurant's data (IMPEX-D3).
+Three endpoints return an empty CSV template, with a header row only, for the zone, menu and floor files. They don't export the restaurant's data (accepted part of IMPEX-D3).
 
 ## Prerequisites
 
@@ -10,7 +10,7 @@ Three endpoints return an empty CSV template, with a header row only, for the zo
 
 ## Actors & preconditions
 
-- **Actor:** any signed-in user (API only — IMPEX-D1).
+- **Actor:** today any signed-in user; target owner only (X-D1 / IMPEX-D3). API only — IMPEX-D1.
 
 ## Main flow
 
@@ -46,7 +46,7 @@ Not read.
 
 ### POS app
 
-The hidden section would call a different URL (IMPEX-D1).
+The hidden section calls the same URLs (`export/zones`, `export/menu`, `export/floors`); only its import is broken (IMPEX-D1).
 
 ### Super-admin panel
 

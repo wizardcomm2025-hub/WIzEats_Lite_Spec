@@ -48,33 +48,38 @@
     </header>
 
     <h2>v1 scope</h2>
-    <p>Three use cases: see live orders, see past orders, filter and search. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour</strong>; HIST-D1 to D3 keep the current rules as accepted risks.</p>
+    <p>Three use cases: see live orders, see past orders, filter and search. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour plus targets</strong> (re-synced 2026-11-24): HIST-D1 is fixed in code (2026-11-18); HIST-D2 and HIST-D3 are <em>To fix</em>.</p>
 
     <h2>How it works end-to-end</h2>
     <p>Each tab posts its endpoint (<code>orders/orderHistoryLive</code>, <code>orders/orderHistory</code>) with the same filter body. Live returns all running orders; History pages paid orders and adds payments, the bill and KOTs to each row.</p>
 
     <h2>What matters where you sit</h2>
     <div class="card"><h3>POS API</h3><ul>
-      <li><code>orderChannelId</code> is validated as an integer that exists in a binary column, then <code>hex2bin</code>'d — no value works (HIST-D1).</li>
-      <li>Live ignores search, payment type and paging, and uses UTC days; History uses IST days (HIST-D2).</li>
-      <li>Both sort by <code>orderId</code> (random GUID) (HIST-D3).</li>
+      <li>The channel filter is <code>channelCode</code>, validated against <code>order_channels.channelCode</code> and matched upper-cased (HIST-D1 fixed 2026-11-18).</li>
+      <li>Live ignores search, payment type and paging, and uses UTC days; History uses IST days (HIST-D2). Target: Live lists every running order, applies channel and search, adds <code>orderDateTime</code>.</li>
+      <li>Both sort by <code>created_at</code>, newest first (since 2026-11-18). History works out <code>Paid</code> / <code>Partial</code> / <code>Unpaid</code> from the payments.</li>
     </ul></div>
     <div class="card"><h3>Data — MySQL</h3><ul>
-      <li>Payments are folded into one <code>GROUP_CONCAT</code> string per order and split again in PHP.</li>
+      <li>Payments are folded into one <code>GROUP_CONCAT</code> string per order and split again in PHP (target: loaded as rows — HIST-D3).</li>
       <li>History runs a bill and a KOT query per row.</li>
     </ul></div>
     <div class="card"><h3>POS app</h3><ul>
-      <li>Channel filter codes are fixed (<code>Dine In</code> 0 … <code>Delivery</code> 3) in <code>orderHistory.filters.ts</code>.</li>
+      <li>The filter sends the channel's <code>channelCode</code> (<code>orderHistory.filters.ts</code>).</li>
       <li>Live cards show <code>Sub Total</code> because Live rows carry no bill.</li>
-      <li>The Live <code>Bill Payment</code> button needs <code>getAllOrders</code>, which never succeeds (BILL-D2).</li>
+      <li>The Live <code>Bill Payment</code> button opens Bill Payment (BILL-D2 fixed). Target: Live hides the date chips and the payment-mode filter.</li>
     </ul></div>
     <div class="card"><h3>Super-admin panel</h3><p>None.</p></div>
     <div class="card"><h3>Integrations</h3><p>None.</p></div>
 
     <div class="card warn"><h3>Accepted risks (do not "fix" without a new decision)</h3><ul>
-      <li>HIST-D1: channel filter always errors.</li>
-      <li>HIST-D2: Live ignores search / payment / paging, UTC days; History empty in practice.</li>
-      <li>HIST-D3: random sort, loose search, fragile payment parsing, any role, per-row queries.</li>
+      <li>HIST-D2 (part): Live cards show <code>Sub Total</code>, also for a billed order.</li>
+      <li>HIST-D3 (part): loose search (<code>LIKE</code>, wildcards not escaped); a bill and a KOT query per History row.</li>
+    </ul></div>
+
+    <div class="card"><h3>To fix (work list)</h3><ul>
+      <li>HIST-D2: Live lists every running order; channel and search apply; <code>orderDateTime</code> on rows; app hides date and payment filters on Live. Tests: 01-D02, D03, D10, 01-T05, 03-T02.</li>
+      <li>HIST-D3: owner + waiter only; payments loaded as rows. Tests: 01-D07, 02-D06, D07, D11.</li>
+      <li>AUTH-D2 (X-D2). Tests: 01-D08, 02-D08.</li>
     </ul></div>
 
     <div class="meta">

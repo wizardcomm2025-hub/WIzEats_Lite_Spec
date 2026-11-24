@@ -50,7 +50,7 @@ The owner opens User Management and sees every waiter and chef of the restaurant
 
 - `StaffController::getStaffDetails` → `StaffService::fetch`.
 - `userId` is optional and must be 32-character hex; anything else gives a 500.
-- No role check (STAFF-D3): a waiter calling with `{}` gets the whole list.
+- No role check today (STAFF-D3): a waiter calling with `{}` gets the whole list. *Target (X-D1):* a waiter or chef always gets only their own row.
 
 ### Data — MySQL
 

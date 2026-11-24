@@ -48,17 +48,19 @@
     </header>
 
     <h2>v1 scope</h2>
-    <p>Seven use cases: check a phone, sign in with PIN, reset a forgotten PIN, change PIN, log out, resume or end a session, and the legacy OTP / register endpoints. See the <a href="./README.md">README</a>. This spec records <strong>today's behaviour</strong> — decisions AUTH-D1 to D10 keep the current rules on purpose; AUTH-D11 is the one change to build.</p>
+    <p>Seven use cases: check a phone, sign in with PIN, reset a forgotten PIN, change PIN, log out, resume or end a session, and the legacy OTP / register endpoints. See the <a href="./README.md">README</a>. This spec records <strong>today's behaviour plus the target for each known gap</strong> (re-synced 2026-11-24). Decisions marked <em>To fix</em> — AUTH-D2, D5, D7, D10, D11 — are the work list; their tests fail until built.</p>
 
     <h2>How it works end-to-end</h2>
-    <p>The app calls <code>checkPhone</code>; a known number moves to the PIN step, a new one goes to onboarding. <code>loginPin</code> checks status and PIN and creates a Sanctum token. The app stores it and routes by approval, <code>mustChangePin</code> and role. Every later call carries the token; <code>RestaurantTenantMiddleware</code> binds the user's restaurant. <code>logout</code> deletes that token; a 401 on any non-auth call makes the app sign out locally.</p>
+    <p>The app calls <code>checkPhone</code>; a known number moves to the PIN step, a new one goes to onboarding. <code>loginPin</code> checks status and PIN and creates a Sanctum token. The app stores it and routes by approval, <code>mustChangePin</code> and role. Every later call carries the token; <code>RestaurantTenantMiddleware</code> binds the user's restaurant. <code>logout</code> deletes that token; a 401 on any non-auth call makes the app sign out locally. <em>Target:</em> the middleware also refuses switched-off users, unapproved and switched-off restaurants with 403, and the app reacts (sign out, or Pending-approval).</p>
 
     <h2>What matters where you sit</h2>
 
     <div class="card"><h3>POS API</h3><ul>
       <li>Routes in <code>routes/api.php</code> under <code>auth</code>; services <code>PinService</code>, <code>OtpService</code>, <code>AuthService</code>.</li>
-      <li>PIN endpoints answer with <code>success</code>, not <code>status</code>.</li>
-      <li>Rate limits: <code>checkPhone</code>, <code>loginPin</code>, <code>forgotPin</code> only. <code>changePin</code> and the legacy endpoints have none.</li>
+      <li>PIN endpoints answer with <code>success</code>, not <code>status</code> — <em>to fix</em> (AUTH-D10): switch to <code>status</code>. The app reads neither.</li>
+      <li>Rate limits: <code>checkPhone</code>, <code>loginPin</code>, <code>forgotPin</code> only. <code>changePin</code> and the legacy endpoints have none — <em>to fix</em> (AUTH-D7): <code>changePin</code> 5 / min per user.</li>
+      <li><em>To fix</em> (AUTH-D2): <code>RestaurantTenantMiddleware</code> checks user status, approval, restaurant status (403); <code>logout</code> exempt, <code>showDetails</code> exempt from approval; <code>loginPin</code> refuses switched-off restaurants.</li>
+      <li><em>To fix</em> (AUTH-D5): no <code>error</code> key in 500 bodies.</li>
       <li>No role checks anywhere in AUTH.</li>
     </ul></div>
     <div class="card"><h3>Data — MySQL</h3><ul>
@@ -69,23 +71,27 @@
     <div class="card"><h3>POS app</h3><ul>
       <li><code>PhoneLoginScreen</code> (phone and PIN steps), <code>ChangePinScreen</code>, <code>LogoutDialogs</code>.</li>
       <li><code>RootNavigator</code> picks Auth / Pending / Change PIN / Main.</li>
-      <li>The axios interceptor ends the session on 401 except for <code>/auth/</code> URLs.</li>
+      <li>The axios interceptor ends the session on 401 except for <code>/auth/</code> URLs. <em>To fix</em> (AUTH-D2): handle the three 403 messages — inactive → sign out with the message; not approved → Pending-approval.</li>
     </ul></div>
     <div class="card"><h3>Super-admin panel</h3><p>Not touched. Approval and user on/off decided there change what AUTH shows (ONB, ADM).</p></div>
     <div class="card"><h3>Integrations</h3><p>E-mail <code>PinMail</code> to the restaurant's address for resets. Errors go to the Google Sheets error log.</p></div>
 
     <div class="card warn"><h3>Accepted risks (do not "fix" without a new decision)</h3><ul>
       <li>AUTH-D1: legacy <code>verifyOtp</code> accepts <code>123456</code> for any phone, no rate limit.</li>
-      <li>AUTH-D2: switching off a user or restaurant only blocks the next PIN sign-in.</li>
       <li>AUTH-D3: tokens never expire.</li>
       <li>AUTH-D4: PIN change / reset leaves other devices signed in.</li>
-      <li>AUTH-D5: 500 responses may carry exception text.</li>
       <li>AUTH-D6: anyone who knows a number can trigger Forgot PIN; it also works for switched-off users.</li>
-      <li>AUTH-D7: <code>changePin</code> has no rate limit.</li>
       <li>AUTH-D8: the API reveals whether a phone is registered.</li>
     </ul></div>
 
-    <div class="card"><h3>The one change to build</h3><p>AUTH-D11: legacy <code>register</code> must create the restaurant and its owner together or not at all. Two parallel calls with the same new phone give one <code>type: "register"</code> and one <code>type: "verify"</code> for the same user — never a 500, never an empty restaurant. Test: <code>AUTH-07-D18</code>.</p></div>
+    <div class="card"><h3>To fix (work list)</h3><ul>
+      <li>AUTH-D2: block switched-off users, unapproved and switched-off restaurants on every call (403) and at sign-in for switched-off restaurants; app reacts.</li>
+      <li>AUTH-D5: no exception text in 500 bodies.</li>
+      <li>AUTH-D7: rate-limit <code>changePin</code>, 5 / min per user.</li>
+      <li>AUTH-D10: <code>status</code> instead of <code>success</code> on PIN endpoints.</li>
+    </ul></div>
+
+    <div class="card"><h3>Also to fix (legacy)</h3><p>AUTH-D11: legacy <code>register</code> must create the restaurant and its owner together or not at all. Two parallel calls with the same new phone give one <code>type: "register"</code> and one <code>type: "verify"</code> for the same user — never a 500, never an empty restaurant. Test: <code>AUTH-07-D18</code>.</p></div>
 
     <div class="meta">
       <p>Summary only — the formal specs win if they disagree: <a href="./README.md">README.md</a> · <a href="./api-contract.md">api-contract.md</a> · <a href="./data-model.md">data-model.md</a> · <a href="./ui-ux.md">ui-ux.md</a> · <a href="./test-cases/README.md">test cases</a></p>

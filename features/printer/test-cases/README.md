@@ -1,6 +1,6 @@
 # Printer settings — test cases
 
-Rules: [conventions.md → Test cases](../../../conventions.md#test-cases-test-cases). Results go in `POS_APP-master/specs/printer/test-results.md`, never here.
+Rules: [conventions.md → Test cases](../../../conventions.md#test-cases-test-cases). Results go in `POS_APP-kot/specs/printer/test-results.md`, never here.
 
 **Expected results describe today's behaviour**, as fixed by PRN-D1 to PRN-D3 ([README](../README.md#decisions)). No case is blocked. **Tester cases only:** everything happens on the device and the printer; no server endpoint is involved ([api-contract.md](../api-contract.md)).
 

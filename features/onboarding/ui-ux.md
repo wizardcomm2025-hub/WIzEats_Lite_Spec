@@ -1,6 +1,6 @@
 # Onboarding & approval — UI / UX
 
-Text below is **verbatim** from the app and the panel (2026-11-06); *(server)* marks an API message shown as is. `\n` = line break.
+Text below is **verbatim** from the app and the panel (2026-11-06; app strings re-checked in `POS_APP-kot` 2026-11-24, unchanged); *(server)* marks an API message shown as is. `\n` = line break.
 
 ## 1. Screens and entry points
 
@@ -25,7 +25,7 @@ Text below is **verbatim** from the app and the panel (2026-11-06); *(server)* m
 | Button | `Save & Continue` — grey and disabled until all four fields are filled and the e-mail matches the rule; spinner while saving |
 | While saving | Fields can't be edited |
 
-Not shown, sent with fixed values: active restaurant = on, KOT = on, delivery = off, room service = off.
+Not shown, sent with fixed values: active restaurant = on, KOT = on, delivery = off, room service = off. The Takeaway switch decides whether the Takeaway channel (and so the Takeaway option on Home) is on after approval.
 
 Field messages (as the user types, then clears or mistypes):
 
@@ -64,6 +64,8 @@ Success: modal `Success!` / `Restaurant submitted for approval`, closes by itsel
 | Pull down | Same as `Check Approval Status` | — |
 
 The app also re-checks approval when the screen opens, when the app starts and each time it comes back to the foreground. When the server says Accepted, the app moves on by itself: Change PIN if a PIN change is due, otherwise Home / KOT ([AUTH 02](../auth/02-sign-in-with-pin.md)). When it says Rejected, the screen switches to the Rejected version.
+
+*Target (AUTH-D2):* if the check is refused with `Your restaurant is inactive.` or `Your account is inactive.`, the app signs out and shows that text in red on Login ([AUTH ui-ux](../auth/ui-ux.md)). Approval itself never causes a sign-out — `showDetails` is exempt from the approval check.
 
 ## 5. Panel — restaurant list (approval part)
 

@@ -2,60 +2,49 @@
 
 ## Summary
 
-A customer's page sends the restaurant ID (and optionally a table or room ID) to `POST /api/public/menu`. It is meant to get back the restaurant's name, tax rate, active order channels and menu. **Today a hex restaurant ID returns empty data. A raw 16-byte ID returns the restaurant's whole item list, deleted and switched-off items included (PUB-D2).**
+A customer's page (not built yet) asks for a restaurant's menu by its ID and gets the restaurant name, tax rate, active channels and items. **Today a normal (hex) ID returns empty data, and the raw ID returns every item including inactive and deleted ones (PUB-D1, PUB-D2 — To fix).**
 
 ## Prerequisites
 
-- **Backend:** `POST /api/public/menu`; see [api-contract.md](./api-contract.md#post-apipublicmenu)
+- **Backend:** `POST /api/public/menu` — [api-contract.md](./api-contract.md#post-apipublicmenu)
 - **Data:** `restaurants`, `restaurant_configs`, `order_channels`, `menu_items`, `item_categories`
 
 ## Actors & preconditions
 
-- **Actor:** anyone; no token is needed.
-- **Preconditions:** none. The restaurant need not exist, be approved or be switched on.
+- **Actor:** anyone; no sign-in.
+- **Preconditions:** the caller knows the restaurant's ID (e.g. from a printed QR link — not built yet).
 
 ## Main flow
 
-1. The caller posts `{ "restaurantId": "<id>", "tableId": <optional>, "roomId": <optional> }`.
-2. The server validates that `restaurantId` is a string. If `tableId` and `roomId` are present, they must be strings.
-3. It reads, each by `restaurantId` as sent:
-   - the restaurant's name;
-   - `restaurant_configs.taxPercent`;
-   - the `channelCode` of every `order_channels` row with `isActive` 1, joined with commas;
-   - every `menu_items` row, left-joined to its category's name and description.
-4. It answers 200 `{ status: true, message: "Menu items retrieved successfully", data: { restaurantName, restaurantConfig, orderChannel, items } }`.
+1. The caller posts `{ "restaurantId": "<hex>" }`.
+2. *Target:* the server converts the ID, checks the restaurant exists, is approved and active, and returns its name, tax %, active channel codes and its active, not-deleted items in active, not-deleted categories (IDs hex). *Today:* the hex ID matches nothing; 200 with empty data.
 
 ## Alternative flows
 
-- **Hex `restaurantId` (32 characters, as every other endpoint uses).** No row matches. The reply is 200 with `restaurantName: null`, `restaurantConfig: null`, `orderChannel: ""`, `items: []`.
-- **Raw 16-byte `restaurantId` (form-encoded body).** The rows match:
-  - `items` holds every item of that restaurant, with hex IDs, in no fixed order. Switched-off and deleted items are included, and so are items in switched-off categories (PUB-D2);
-  - `orderChannel` lists the active channel codes, in no fixed order;
-  - pending, rejected and switched-off restaurants are served the same way.
-- **Unknown restaurant.** The same empty 200 as a hex ID.
-- **Validation failure.** 422 `{ status: false, message: <first error>, errors }`.
-- **Database failure.** 500 `{ status: false, message: "Failed to retrieve public menu items", data: null }`.
+- **Unknown, malformed, pending, rejected or switched-off restaurant.** *Target:* 404 `Restaurant not found`. Today: empty data (hex), or the full menu (raw ID) whatever its state.
+- **More than 60 calls a minute from one IP.** *Target:* 429.
+- **Database failure.** 500 `Failed to retrieve public menu items`.
 
 ## Acceptance criteria
 
-1. Given REST-A's hex ID in JSON, when the menu is requested, then 200 with `restaurantName` null, `restaurantConfig` null, `orderChannel` `""` and `items` `[]`.
-2. Given REST-A's raw ID in a form body, then 200 with `restaurantName` `Rest A`, `restaurantConfig` `{ taxPercent: "5.00" }`, the four channel codes, and every REST-A item including ITEM-3 (inactive) and ITEM-DEL (deleted).
-3. Given REST-P's raw ID, then its menu is returned the same way (no approval check).
+1. *(Target, PUB-D1)* Given REST-A's hex ID, then 200 with `restaurantName` `Rest A`, `taxPercent` `5.00`, its active channel codes and its active items. (Today: empty data.)
+2. *(Target, PUB-D2)* Given an inactive item, a deleted item and an item in an inactive category, then none of them is listed.
+3. *(Target, PUB-D2)* Given a pending, rejected or switched-off restaurant, then 404 `Restaurant not found`.
 4. Given `{}`, then 422 `The restaurant id field is required.`
 
 ## Platform notes
 
 ### POS API
 
-`PublicController::menu`: `PublicMenuRequest` → `PublicService::getPublicMenuItems`. Items are Eloquent models, so `HasBinaryUuids::toArray` turns their binary IDs into hex. Any exception is caught, sent to the Google Sheet log, and answered with the generic 500.
+`PublicController::menu` → `PublicService::getPublicMenu`.
 
 ### Data — MySQL
 
-Read only. No `isActive` / `isDelete` filter on items or categories.
+Read only. See [data-model.md](./data-model.md#menu-reads-use-case-01).
 
 ### POS app
 
-None. The app never calls the public endpoints.
+None.
 
 ### Super-admin panel
 
@@ -63,16 +52,16 @@ None.
 
 ### Integrations
 
-Google Sheet error log (only on a 500, when configured).
+Failures go to the Google Sheet log.
 
 ## Configuration
 
-`GOOGLE_SHEET_LOG_URL`, `GOOGLE_SHEET_LOG_SECRET`, `GOOGLE_SHEET_LOG_THROTTLE_MINUTES`.
+None (target: the rate limit in the route).
 
 ## Out of scope
 
-- Prices with tax, images, availability. The reply is the raw item rows.
+- The customer page — not built.
 
 ## Open questions
 
-- None open.
+- None open. Related decisions: PUB-D1, PUB-D2, PUB-D3.

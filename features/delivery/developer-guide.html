@@ -48,34 +48,38 @@
     </header>
 
     <h2>v1 scope</h2>
-    <p>Two use cases: open the board, and move a delivery order on. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour</strong>; DLV-D1 to D3 keep the current rules as accepted risks.</p>
+    <p>Two use cases: open the board, and move a delivery order on. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour plus targets</strong> (re-synced 2026-11-24; the app part of DLV-D1 is fixed, the server is unchanged): DLV-D1 to D3 are <em>To fix</em>; DLV-D4 (no app path to create delivery orders) is accepted.</p>
 
     <h2>How it works end-to-end</h2>
     <p>The Home <code>DELIVERY</code> tile opens the board, which polls <code>orders/channel/{channelId}</code>. Card buttons post <code>orders/update-status/{kotId}</code> with the KOT stage; for 1, 3 and 4 the server sends a WhatsApp text.</p>
 
     <h2>What matters where you sit</h2>
     <div class="card"><h3>POS API</h3><ul>
-      <li>The list query filters on <code>orders.orderChannel</code>, which the GUID schema lacks; the failure comes back inside a 200 (DLV-D1).</li>
+      <li>The list query filters on <code>orders.orderChannel</code>, which the GUID schema lacks; the failure comes back inside a 200 (DLV-D1). Target: check the channel is the restaurant's Delivery channel (404), hex IDs, newest first.</li>
       <li>The update casts the ID with <code>(int)</code>; ID 0 matches some KOT of any restaurant, and the update then fails in strict mode with SQL text in the reply (DLV-D2).</li>
-      <li>No role, restaurant or stage check; any integer status (DLV-D2).</li>
-      <li>WhatsApp goes to a number fixed in the code (DLV-D3).</li>
+      <li>No role, restaurant or stage check; any integer status (DLV-D2). Target: hex lookup on a delivery order of the restaurant (404), owner / waiter, 0–4, Pending→Accepted / Rejected, Accepted→Out for Delivery, Out for Delivery→Completed (409).</li>
+      <li>WhatsApp goes to a number fixed in the code (DLV-D3). Target: the order's <code>customerPhone</code>.</li>
     </ul></div>
     <div class="card"><h3>Data — MySQL</h3><ul>
       <li><code>orderChannel</code> exists only in the old integer migration, not in <code>db_script</code>.</li>
       <li>Strict mode turns the number-cast warning in an <code>UPDATE</code> into error 1292.</li>
     </ul></div>
     <div class="card"><h3>POS app</h3><ul>
-      <li><code>Number(channelHex) || 3</code> sends <code>3</code>; the first failure of a sign-in shows the PHP message as a toast (DLV-D1).</li>
-      <li>The mapper runs <code>Number()</code> on <code>orderId</code> / <code>kotId</code>, so toasts would read <code>Order #NaN</code> and actions would stop at "has no KOT to update".</li>
-      <li><code>Complete Payment</code> sets KOT status 3 only (DLV-D3).</li>
+      <li>The channel ID comes from Home's channel list by <code>channelCode</code> (fallback <code>3</code> only when missing); IDs stay strings (app part of DLV-D1 fixed).</li>
+      <li>Toasts show the order's hex ID as <code>Order #&lt;id&gt;</code>.</li>
+      <li><code>Complete Payment</code> sets KOT status 3 only today; target: opens Bill Payment (DLV-D3).</li>
     </ul></div>
     <div class="card"><h3>Super-admin panel</h3><p>None.</p></div>
     <div class="card"><h3>Integrations</h3><p>WhatsApp Cloud API (<code>WHATSAPP_API_URL</code>, <code>WHATSAPP_ACCESS_TOKEN</code>); fixed recipient; failures only logged. Not reached today.</p></div>
 
     <div class="card warn"><h3>Accepted risks (do not "fix" without a new decision)</h3><ul>
-      <li>DLV-D1: board never loads; PHP message toast; no app path to create delivery orders.</li>
-      <li>DLV-D2: <code>(int)</code> ID cast, cross-restaurant lookup, SQL text in errors, no rules.</li>
-      <li>DLV-D3: fixed WhatsApp recipient; Complete Payment records no payment; list shape.</li>
+      <li>DLV-D4: no app path to create delivery orders (online orders only — PUB).</li>
+    </ul></div>
+
+    <div class="card"><h3>To fix (work list)</h3><ul>
+      <li>DLV-D1: list query by the Delivery channel, hex IDs, 404 for other channels. Tests: 01-D01–D04, D09, D10, 01-T03, T04.</li>
+      <li>DLV-D2: hex lookup, roles, value and stage rules, no SQL text. Tests: 01-D05, 02-D01–D08, D10, D12.</li>
+      <li>DLV-D3: WhatsApp to the customer; Complete Payment through BILL. Tests: 02-D13, D14, 02-T02, T03.</li>
     </ul></div>
 
     <div class="meta">

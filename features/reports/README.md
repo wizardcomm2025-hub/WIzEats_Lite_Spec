@@ -2,7 +2,7 @@
 
 The owner's **Dashboard** (drawer `Analytics` → `Dashboard`, tablet rail `Dashboard`) shows sales figures for a period (`Today`, `Yesterday`, `7 Days`, `15 Days`, `30 Days`): total revenue, orders, average order value, table turnover, the cash / UPI split, top-selling items and the channel mix. It also shows revenue and order trends (daily / weekly / monthly) and can export CSV files.
 
-The spec records today's behaviour. Decisions RPT-D1 to RPT-D3 keep the current rules as accepted risks. **Today almost every figure is 0 because the app can't take payment (BILL-D2). Only Top Selling and the items export show data, and they count unpaid orders too (RPT-D1).**
+The spec records today's behaviour plus targets (re-synced 2026-11-24 against API commit d54d6c8 and `POS_APP-kot`). Payments are taken in the app now (BILL-D2 fixed), so the figures fill up. Since 2026-11-18 revenue is the money actually collected and Top Selling counts fully paid orders only; since 2026-11-19 the orders export works (hex IDs, IST days). RPT-D1 to RPT-D3 are *To fix* for what remains.
 
 **Feature code:** `RPT` (test IDs `RPT-01-T01`, `RPT-02-D04`, …)
 
@@ -10,21 +10,21 @@ The spec records today's behaviour. Decisions RPT-D1 to RPT-D3 keep the current 
 
 | # | Use case | Actor | Tester file | Developer file |
 |---|---|---|---|---|
-| 01 | [View the dashboard](./01-view-dashboard.md) | Owner (any role through the API — RPT-D3) | [tester](./test-cases/01-view-dashboard.tester.md) | [developer](./test-cases/01-view-dashboard.developer.md) |
+| 01 | [View the dashboard](./01-view-dashboard.md) | Owner (today any role through the API — RPT-D3) | [tester](./test-cases/01-view-dashboard.tester.md) | [developer](./test-cases/01-view-dashboard.developer.md) |
 | 02 | [See revenue and order trends](./02-see-trends.md) | same | [tester](./test-cases/02-see-trends.tester.md) | [developer](./test-cases/02-see-trends.developer.md) |
 | 03 | [Export the report](./03-export-report.md) | same | [tester](./test-cases/03-export-report.tester.md) | [developer](./test-cases/03-export-report.developer.md) |
 
 ## Key concepts
 
-- **Paid order** — `orders.orderStatus` 2. Only these count for revenue, orders, turnover, channel mix and trends (RPT-D1).
-- **Period** — `filter_type`: `today`, `yesterday`, `last_7_days` (today + 6 days before), `last_15_days` (today + 14), `last_30_days` (**the current calendar month** — RPT-D2). Days are UTC days.
+- **Paid order** — `orders.orderStatus` 2. Only these count for revenue, orders, turnover, channel mix and trends; Top Selling also requires the payments to cover the grand total (since 2026-11-18); target the items export too (RPT-D1).
+- **Period** — `filter_type`: `today`, `yesterday`, `last_7_days` (today + 6 days before), `last_15_days` (today + 14), `last_30_days` (today **the current calendar month**; target today + 29 — RPT-D2). Days are UTC days today; target IST days.
 - **Trend type** — `daily` (this Monday–Sunday), `weekly` (this month, weeks 1–5 by `CEIL(day / 7)`), `monthly` (this January–December).
-- **Revenue breakdown** — per payment type: Σ(`receivedAmount` − `changeAmount`) of completed CASH / UPI payments of the period's paid orders.
+- **Revenue (collected)** — since 2026-11-18: Σ(`receivedAmount` − `changeAmount`) of the completed payments of the period's paid orders, all payment types; the **breakdown** shows the CASH and UPI parts.
 
 ## Documents
 
 - [data-model.md](./data-model.md) · [api-contract.md](./api-contract.md) · [ui-ux.md](./ui-ux.md) · [test-cases/README.md](./test-cases/README.md) · [developer-guide.html](./developer-guide.html)
-- Implementation: `laravel-pos-api-dev_guid/specs/reports/` (created with the first plan)
+- Implementation: `laravel-pos-api/api/specs/reports/` (created with the first plan)
 
 ## Depends on
 
@@ -32,6 +32,23 @@ The spec records today's behaviour. Decisions RPT-D1 to RPT-D3 keep the current 
 - **TBL** — table count for the turnover rate.
 
 ## Decisions
+
+Statuses per [conventions.md → Decision status](../../conventions.md#decision-status), set 2026-11-24. Cross-cutting items: [project-overview.md → Known gaps and targets](../../project-overview.md#known-gaps-and-targets).
+
+| ID | Status | Short | Tests |
+|---|---|---|---|
+| RPT-D1 | **To fix** (revenue and Top Selling fixed in code 2026-11-18) | Items export counts unpaid orders | 03-D01, 03-D08; 03-T01 |
+| RPT-D2 | **To fix** | UTC days; `30 Days` = calendar month; daily trend Sunday-first | 01-D05, 01-D06, 02-D01, 03-D09 |
+| RPT-D3 | **To fix** (orders export fixed in code 2026-11-18/19; with X-D1, X-D5) | Unsafe CSV; formatted total breaks the orders CSV; any role; exception text | 01-D09, 01-D13, 02-D07, 03-D02, 03-D05, 03-D07; 01-T04, 03-T03, 03-T04 |
+| AUTH-D2 (inherited) | **To fix** (X-D2) | Switched-off / unapproved callers keep access | 01-D10, 02-D07, 03-D05 |
+
+- **Fixed in code 2026-11-18 / 19** (part of RPT-D1 and RPT-D3): `total_revenue` is the money collected — Σ(received − change) of completed payments of the period's paid orders — and `avg_order_value` divides that by the paid orders; `top-selling-items` counts only lines of paid orders whose completed payments cover the grand total, and now has the message `Top selling items fetched successfully`; `get-all-orders` returns hex IDs (no more 500), takes `startDate` / `endDate` as IST days, returns `created_at` in IST and `grandTotal` formatted `en_IN` (e.g. `1,050.00`). With the ORD-D2 fix, app orders carry their table, so table turnover is no longer 0.
+- **RPT-D1 — To fix (2026-11-24, was accepted 2026-11-12).** *Target:* `get-all-items` counts only lines of paid orders whose payments cover the grand total, like Top Selling. Still accepted: an order paid for less than its total (possible until BILL-D1 is fixed) counts in `Total Orders` but not in Top Selling or the items export; the trends sum `grandTotal` of paid orders.
+- **RPT-D2 — To fix (2026-11-24, was accepted 2026-11-12).** *Target:* every period, both trends and both exports use IST calendar days (converted to UTC for the query); `last_30_days` = today and the 29 days before; the daily trend lists Monday first. Still accepted: the weekly trend's `Week 1`–`Week 5` by `CEIL(day / 7)`; `top-selling-items` returns every item (the app shows up to 100).
+- **RPT-D3 — To fix (2026-11-24, was accepted 2026-11-12).** *Target:* `get-all-orders` returns `grandTotal` as a plain decimal string (`"1050.00"`); the app quotes every CSV field (RFC 4180: in double quotes, inner quotes doubled) and prefixes a cell starting with `=`, `+`, `-` or `@` with an apostrophe; all six endpoints owner only (X-D1: 403 `You do not have permission to perform this action`); 500s carry no `error` key or exception text (X-D5).
+- **Inherited:** BILL-D1 (To fix — once fixed only CASH / UPI exist and payments add up); BILL-D2 and ORD-D2 fixed; AUTH-D2 (To fix, X-D2); AUTH-D5 / X-D5.
+
+Original decision texts (history):
 
 - **RPT-D1 (2026-11-12):** What is counted stays as it is:
   - revenue, order count, average, turnover, revenue breakdown, channel mix and both trends count **paid orders only**. With no app payments (BILL-D2) they are all 0 / empty in practice;
@@ -55,7 +72,7 @@ The spec records today's behaviour. Decisions RPT-D1 to RPT-D3 keep the current 
   - No role check: a waiter or chef token can read all the reports, including revenue.
 
   Accepted risk.
-- **Inherited:** BILL-D1, BILL-D2, ORD-D2, AUTH-D2, AUTH-D5.
+- **Inherited (2026-11-12):** BILL-D1, BILL-D2, ORD-D2, AUTH-D2, AUTH-D5.
 
 ## Cross-cutting open questions
 

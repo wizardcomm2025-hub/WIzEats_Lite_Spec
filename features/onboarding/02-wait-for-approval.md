@@ -2,7 +2,7 @@
 
 ## Summary
 
-Until a super admin accepts a restaurant, anyone from it who signs in sees a "Verification in Progress" screen instead of the app, and a rejected restaurant sees "Account Access Denied". The app re-reads the approval on its own and on request, and lets the user in as soon as it is accepted. This screen is the only thing that holds back an unapproved restaurant — the API does not (AUTH-D2).
+Until a super admin accepts a restaurant, anyone from it who signs in sees a "Verification in Progress" screen instead of the app, and a rejected restaurant sees "Account Access Denied". The app re-reads the approval on its own and on request, and lets the user in as soon as it is accepted. Today this screen is the only thing that holds back an unapproved restaurant. Target (AUTH-D2 / X-D2): the API also refuses every call of an unapproved restaurant except this screen's check and logout.
 
 ## Prerequisites
 
@@ -31,7 +31,8 @@ Until a super admin accepts a restaurant, anyone from it who signs in sees a "Ve
 - **No network.** `Could not reach the server. Check the connection and try again.`
 - **Onboarding not done (legacy account).** The check never runs; the button always shows `Could not reach the server. Check the connection and try again.` and the restaurant never appears in the panel (ONB-D4).
 - **Logout.** `LOGOUT FROM SYSTEM` logs out at once ([AUTH 05](../auth/05-log-out.md)).
-- **Direct API use.** The session token works on every endpoint while Pending or Rejected (AUTH-D2).
+- **Direct API use.** Today the session token works on every endpoint while Pending or Rejected. *Target (AUTH-D2):* every protected call except `restaurants/showDetails` and `auth/logout` → 403 `Your restaurant is not approved.`; nothing is written.
+- **Restaurant or user switched off while waiting.** Today the check still says `Checked just now — still under review.` *Target (AUTH-D2):* the check gets 403 `Your restaurant is inactive.` / `Your account is inactive.` and the app signs out to Login with that message in red ([AUTH 06](../auth/06-resume-or-end-session.md)).
 - **Accepted, then later rejected.** Only possible by a crafted panel request (ONB-D2); the next check shows the Rejected screen.
 
 ## Acceptance criteria
@@ -44,12 +45,14 @@ Until a super admin accepts a restaurant, anyone from it who signs in sees a "Ve
 6. Given `LOGOUT FROM SYSTEM`, then Login shows immediately, with no confirmation.
 7. Waiters and chefs of a Pending restaurant see the same screen as the owner.
 8. No support number configured → no `Contact Support` button.
+9. *(Target, AUTH-D2)* Given a Pending or Rejected restaurant, when its token calls any protected endpoint other than `showDetails` or `logout`, then 403 `Your restaurant is not approved.` and nothing is written; `showDetails` still answers 200 with the approval.
+10. *(Target, AUTH-D2)* Given REST-P is switched off while its owner is on this screen, when the approval is checked, then the app shows Login with `Your restaurant is inactive.` in red.
 
 ## Platform notes
 
 ### POS API
 
-No endpoint of its own; uses `showDetails` (RST). No API endpoint checks approval (AUTH-D2).
+No endpoint of its own; uses `showDetails` (RST). Today no API endpoint checks approval. Target (X-D2): the tenant middleware checks it on every call; `showDetails` is exempt from the approval check only, `logout` from all checks.
 
 ### Data — MySQL
 
@@ -73,8 +76,8 @@ Decision made there — [03](./03-approve-or-reject.md).
 
 ## Out of scope
 
-- Enforcing approval on the API — not done (AUTH-D2).
+- Building the API approval check — owned by the X-D2 work ([project-overview.md](../../project-overview.md#known-gaps-and-targets)); this use case only states how the screen behaves with it.
 
 ## Open questions
 
-- None open. Related decisions: ONB-D2, ONB-D4, AUTH-D2.
+- None open. Related decisions: ONB-D2, ONB-D4, AUTH-D2 (To fix).

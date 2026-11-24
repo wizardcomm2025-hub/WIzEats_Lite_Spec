@@ -1,6 +1,6 @@
 # Printer settings — data model
 
-Sources: `POS_APP-master/src/shared/utils/printerSettings.ts`, `printPdf.ts`, `android/.../print/WifiPrinterModule.kt`.
+Sources: `POS_APP-kot/src/shared/utils/printerSettings.ts`, `printPdf.ts`, `android/.../print/WifiPrinterModule.kt`.
 
 No server data. One device-local value:
 

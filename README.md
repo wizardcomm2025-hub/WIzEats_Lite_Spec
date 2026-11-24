@@ -9,7 +9,7 @@ Living source of truth for the behaviour of WhizEats POS Lite: use cases, API co
 ## Who this is for
 
 - **Product & PMs** — write and review feature specs here
-- **Designers (UX/UI)** — link Figma frames into specs; app screens follow the theme and shared components described in `POS_APP-master/CLAUDE.md`
+- **Designers (UX/UI)** — link Figma frames into specs; app screens follow the theme and shared components described in `POS_APP-kot/CLAUDE.md`
 - **Engineers** — read before implementing; propose changes in the same change as the code plan
 - **Testers** — use the tester test cases in `features/<feature>/test-cases/`. They are UI-driven: run in the POS app as owner / waiter / chef, no endpoints, no request bodies
 - **Developers** — use the developer test cases there too: direct API calls with garbage, unauthenticated or manipulated input (no or revoked token, another restaurant's IDs, a waiter token on an owner action, forged prices, extra fields)
@@ -53,27 +53,29 @@ App-Specs/
 The specs are read in place. There is no copy inside the implementation repos.
 
 ```
-C:\whizeats-lite\
-├── App-Specs\                  ← this folder: WHAT each feature does + test cases
-├── laravel-pos-api-dev_guid\   ← Laravel API, super-admin panel, SQL; reads specs at ../App-Specs/
-│   └── specs\                  ← HOW: plan.md, tasks.md, test-results.md per feature
-└── POS_APP-master\             ← React Native POS app; reads specs at ../App-Specs/
+D:\whizeats_Lite_Spec\
+├── spec\                       ← this folder: WHAT each feature does + test cases
+├── db_script\pos_stage.sql     ← current schema dump (MySQL 8.0, stage)
+└── frontend\POS_APP-kot\       ← React Native POS app
+
+C:\xampp82\htdocs\laravel-pos-api\api\   ← Laravel API, super-admin panel, migrations (branch dev)
+└── specs\                      ← HOW: plan.md, tasks.md, test-results.md per feature
 ```
 
-| Lives here (App-Specs) | Lives in `laravel-pos-api-dev_guid/specs/<feature>/` | Lives in code |
+| Lives here (App-Specs) | Lives in `laravel-pos-api/api/specs/<feature>/` | Lives in code |
 |---|---|---|
 | Use cases, acceptance criteria | `plan.md` — files to change, steps, risks | Controllers, FormRequests, services, models |
 | Data model, API contract, UI/UX | `tasks.md` — status per task | Migrations and `db_script/` SQL |
 | Tester + developer test cases | `test-results.md` — actual result per test ID | App screens, slices, thunks, API clients |
 | ADRs, glossary | | Postman collections / automated tests |
 
-If you're unsure where something belongs: if it says **what** the system does or how to test it, it lives here. If it says **how** this change is built or how far it got, it lives in `laravel-pos-api-dev_guid/specs/`.
+If you're unsure where something belongs: if it says **what** the system does or how to test it, it lives here. If it says **how** this change is built or how far it got, it lives in `laravel-pos-api/api/specs/`.
 
 ## Writing a new feature spec
 
 1. Create `features/<name>/` by copying `features/template/`
 2. Fill in `README.md`, the use-case files, `data-model.md`, `api-contract.md`, `ui-ux.md`, `test-cases/`, and `developer-guide.html` per [`conventions.md`](./conventions.md)
-3. Get approval, then write `plan.md` / `tasks.md` in `laravel-pos-api-dev_guid/specs/<name>/`
+3. Get approval, then write `plan.md` / `tasks.md` in `laravel-pos-api/api/specs/<name>/`
 
 ## Editing an existing spec
 
@@ -100,7 +102,7 @@ Spec-authoring skills live under [`.claude/skills/`](./.claude/skills/): `spec-i
 
 ## For Claude Code
 
-When working on a feature task in `laravel-pos-api-dev_guid` or `POS_APP-master`:
+When working on a feature task in `laravel-pos-api/api` or `POS_APP-kot`:
 
 1. Read this `README.md`
 2. Read `project-overview.md` (platform decisions, API conventions, known gaps, glossary)

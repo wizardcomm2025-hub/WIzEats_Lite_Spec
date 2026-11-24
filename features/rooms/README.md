@@ -2,7 +2,7 @@
 
 For restaurants that also run rooms, such as a hotel kitchen, the owner sets up **floors** and the **rooms** on each floor, so that Room Service orders can be taken for a room. The two screens appear in the app's menu only while the restaurant's Room Service setting is on (RST). There is no panel page for floors or rooms.
 
-The spec records today's behaviour. Decisions ROOM-D1 to ROOM-D3 keep the current rules as accepted risks. **Today only "add a floor" and "list floors" work from the app (ROOM-D1).**
+The spec records today's behaviour plus targets (re-synced 2026-11-24 against API commit d54d6c8 and `POS_APP-kot`). The GUID handling was fixed on 2026-11-16 (ROOM-D1), so floors and rooms can now be added, renamed and switched from the app. ROOM-D2 to ROOM-D6 are *To fix*.
 
 **Feature code:** `ROOM` (test IDs `ROOM-01-T01`, `ROOM-02-D04`, …)
 
@@ -10,8 +10,8 @@ The spec records today's behaviour. Decisions ROOM-D1 to ROOM-D3 keep the curren
 
 | # | Use case | Actor | Tester file | Developer file |
 |---|---|---|---|---|
-| 01 | [Manage floors](./01-manage-floors.md) | Owner (any signed-in user through the API — ROOM-D2) | [tester](./test-cases/01-manage-floors.tester.md) | [developer](./test-cases/01-manage-floors.developer.md) |
-| 02 | [Manage rooms](./02-manage-rooms.md) | Owner (any signed-in user through the API — ROOM-D2) | [tester](./test-cases/02-manage-rooms.tester.md) | [developer](./test-cases/02-manage-rooms.developer.md) |
+| 01 | [Manage floors](./01-manage-floors.md) | Owner (today any signed-in user through the API — ROOM-D2) | [tester](./test-cases/01-manage-floors.tester.md) | [developer](./test-cases/01-manage-floors.developer.md) |
+| 02 | [Manage rooms](./02-manage-rooms.md) | Owner (today any signed-in user through the API — ROOM-D2) | [tester](./test-cases/02-manage-rooms.tester.md) | [developer](./test-cases/02-manage-rooms.developer.md) |
 
 ## Key concepts
 
@@ -22,15 +22,37 @@ The spec records today's behaviour. Decisions ROOM-D1 to ROOM-D3 keep the curren
 ## Documents
 
 - [data-model.md](./data-model.md) · [api-contract.md](./api-contract.md) · [ui-ux.md](./ui-ux.md) · [test-cases/README.md](./test-cases/README.md) · [developer-guide.html](./developer-guide.html)
-- Implementation: `laravel-pos-api-dev_guid/specs/rooms/` (created with the first plan)
+- Implementation: `laravel-pos-api/api/specs/rooms/` (created with the first plan)
 
 ## Depends on
 
 - **RST** — the Room Service switch (panel only) shows or hides the Floor and Room Management menus.
-- **IMPEX** — importing is today the only working way to create rooms.
-- **ORD** — Room Service orders pick a room and set its status.
+- **IMPEX** — importing floors and rooms (since 2026-11-16 rooms can also be added in the app).
+- **ORD** — the Room Service order screen (owner and waiter) lists floors and active rooms and sets a room's `status` through `roomSave` (occupy `1`, leave `0`).
 
 ## Decisions
+
+Statuses per [conventions.md → Decision status](../../conventions.md#decision-status), set 2026-11-24. Cross-cutting items: [project-overview.md → Known gaps and targets](../../project-overview.md#known-gaps-and-targets).
+
+| ID | Status | Short | Tests |
+|---|---|---|---|
+| ROOM-D1 | **Fixed in code 2026-11-16** (and in the app) | Hex IDs not converted; app filter by `Number()` | 01-D03, 01-D04, 02-D02, 02-D04, 02-D06; 01-T05, 01-T06, 02-T01, 02-T03, 02-T06, 02-T07 |
+| ROOM-D2 | **To fix** (X-D1) | Any role may change floors and rooms | 01-D08, 02-D10 |
+| ROOM-D3 | **To fix** (with X-D4, X-D8) | No integrity checks | 01-D06, 01-D14, 01-D15, 01-D16; 02-D05, 02-D08, 02-D09, 02-D11, 02-D17; 01-T09, 02-T04, 02-T08 |
+| ROOM-D4 | **To fix** (new 2026-11-24) | Leftover list / ID faults | 01-D09, 02-D03, 02-D14, 02-D16 |
+| ROOM-D5 | **To fix** (new 2026-11-24) | Switched-off rooms vanish from Room Management | 02-D19; 02-T07 |
+| ROOM-D6 | **To fix** (new 2026-11-24) | Floor / Room sheet failures are silent | 01-T08, 01-T09, 02-T08 |
+| AUTH-D2 (inherited) | **To fix** (X-D2) | Switched-off / unapproved callers keep access | 01-D10, 02-D12 |
+
+- **ROOM-D1 — Fixed in code 2026-11-16** (commit `0642e64`), and in the app. `RoomService` converts `floorId` / `roomId` from hex (dashes removed) on floor update, room create, room update lookup and the room list's filters; the app's Room Management compares IDs as strings and asks the server for the selected floor's rooms. Floor rename / switch (cascading to the floor's rooms), room add, edit and switch now work. The leftovers are ROOM-D4.
+- **ROOM-D2 — To fix (2026-11-24, was accepted 2026-11-10), via [X-D1](../../project-overview.md#known-gaps-and-targets).** *Target:* `getFloorDetails` and `getRoomsDetails` — owner and waiter (the Room Service order screen); `floorSave` — owner; `roomSave` — owner with any field, waiter **only** `{ roomId, status }` (any other field present → 403); chef — 403 on all four. 403 body `{ "status": false, "message": "You do not have permission to perform this action", "data": null }`. `includeInactive` (ROOM-D5) is owner-only. The Room Service setting is still **not** checked by the API (accepted).
+- **ROOM-D3 — To fix (2026-11-24, was accepted 2026-11-10), aligned with TBL-D2.** *Target:* `floorId` on room create / update must be a non-deleted floor of the caller's restaurant → else 422 `Invalid floor` (X-D8, also for a malformed ID); floor names unique per restaurant among non-deleted floors (any case, trimmed) → 422 `Floor name already exists.`; room names unique per floor (same rules) on create and on any update that changes the name or floor → 422 `Room name already exists.`; `capacity` `integer|min:1|max:2147483647` (the app's form too: `Capacity must be at least 1`); `floorName` / `roomName` `max:255`; deleting a floor (`isDelete: true`) also deletes its rooms; updating an unknown, deleted, other restaurant's or malformed ID → 404 `Floor not found` / `Room not found` (X-D4).
+- **ROOM-D4 — To fix (new 2026-11-24).** *Today:* `getRoomsDetails` with `roomId` → 500 (the column is ambiguous with `orders.roomId`); `getFloorDetails` with `floorId` compares hex with binary → `[]`; moving a room (`roomSave` update with `floorId`) stores the hex unconverted → 500; a room with two running orders is listed twice. *Target:* both filters take 32-char hex (dashes allowed) and return the match, other values → 422 `Validation error`; `floorId` converted on update (and checked — ROOM-D3); one row per room, `orderId` = the highest running order.
+- **ROOM-D5 — To fix (new 2026-11-24).** *Today:* `getRoomsDetails` returns active rooms only, so a room switched off in Room Management disappears at the next load and can't be switched back on from the app. *Target:* `getRoomsDetails` accepts `includeInactive: true` (owner only; others → 403) and then also returns inactive, non-deleted rooms. Room Management sends it and shows inactive rooms faded with their switch off; the Room Service order screen does not send it, so its grid stays active-only.
+- **ROOM-D6 — To fix (new 2026-11-24), same as TBL-D5.** *Today:* the Add / Edit Floor and Add / Edit Room sheets close before the server answers, so a failed save shows nothing. *Target:* the sheet stays open while saving, closes only when the server accepts, and on failure shows the server message (e.g. `Floor name already exists.`, `Room name already exists.`) or `Something went wrong. Please try again.` in red under the name field, values kept.
+- **Inherited:** AUTH-D2 (To fix, X-D2).
+
+Original decision texts (history):
 
 - **ROOM-D1 (2026-11-10):** The GUID handling stays broken. `RoomService` never converts hex IDs to binary, and the app filters rooms with `Number(floorId)`. As a result:
   - renaming or switching a floor answers 500 `Failed to save floor`;
@@ -51,14 +73,15 @@ The spec records today's behaviour. Decisions ROOM-D1 to ROOM-D3 keep the curren
   - inactive rooms are never listed, so they can't be switched back on.
 
   Accepted risk.
-- **Inherited:** AUTH-D2.
+- **Inherited (2026-11-10):** AUTH-D2.
 
 ## Facts worth knowing
 
-- The save messages are lower case: `floor created successfully`, `room created successfully`.
+- The save messages are lower case: `floor created successfully`, `floor updated successfully`, `room created successfully`, `room updated successfully`.
 - A floor's `createdBy` is set to the caller's role. A room's `createdBy` stays empty.
-- After adding a floor, its card shows `Rooms: 0` (the reply has no count) until the list is loaded again.
-- In the app, a failed rename, a failed room add or a failed room edit shows no message. A failed switch shows a toast with the server message.
+- After adding or switching a floor, its card shows `Rooms: 0` (the reply has no count) until the list is loaded again.
+- Switching a floor through the API sets `isActive` on **all** its rooms (including deleted ones); switching it back on re-activates rooms that were off on their own.
+- In the app, a failed floor add or rename, or a failed room add or edit, shows no message (ROOM-D6). A failed switch shows a toast with the server message.
 
 ## Cross-cutting open questions
 

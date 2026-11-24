@@ -48,7 +48,7 @@
     </header>
 
     <h2>v1 scope</h2>
-    <p>Two use cases: import CSV files and download a template. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour</strong>; IMPEX-D1 to D3 keep the current rules as accepted risks.</p>
+    <p>Two use cases: import CSV files and download a template. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour plus targets</strong> (re-synced 2026-11-24; no IMPEX code changed): IMPEX-D1 stays accepted; IMPEX-D2 and IMPEX-D3 are <em>To fix</em>.</p>
 
     <h2>How it works end-to-end</h2>
     <p><code>ImportController</code> validates up to three files (<code>zone_file</code>, <code>menu_file</code>, <code>floor_file</code>; csv/txt; 10 MB) and calls <code>ImportService::import</code> with the caller's <code>restaurantId</code>. Inside one transaction it reads each file by column position, skips the first line, finds or creates the parent by name, and creates one child per row. Every row has its own try / catch, so failures are logged and skipped. <code>ExportService</code> streams a single header line per template.</p>
@@ -57,21 +57,26 @@
     <div class="card"><h3>POS API</h3><ul>
       <li>The response is always <code>Import completed successfully</code>, with no counts (IMPEX-D2).</li>
       <li>The outer failure answers 400 with <code>$e-&gt;getMessage()</code> (IMPEX-D3).</li>
-      <li>No role check and no rate limit.</li>
+      <li>No role check and no rate limit. Target: owner only (X-D1); failure → 500 <code>Import failed</code>, no exception text, full rollback.</li>
     </ul></div>
     <div class="card"><h3>Data — MySQL</h3><ul>
       <li>Parents are matched by name, ignoring case, among rows that aren't deleted; active state is ignored. Children are never de-duplicated.</li>
       <li><code>(int)</code> / <code>(float)</code> casts; <code>createdBy</code> is ignored where it isn't fillable.</li>
-      <li>Import uses real binary IDs, so the rooms it creates work, unlike ROOM's own API.</li>
+      <li>Import uses real binary IDs (ROOM's own API does too since 2026-11-16).</li>
     </ul></div>
-    <div class="card"><h3>POS app</h3><p><code>ImportExcelSection</code> is commented out in Profile. It would send the field <code>file</code> and call a different export URL (IMPEX-D1).</p></div>
+    <div class="card"><h3>POS app</h3><p><code>ImportExcelSection</code> is commented out in Profile. It would send the field <code>file</code> (wrong); its export URLs match the server (IMPEX-D1, accepted).</p></div>
     <div class="card"><h3>Super-admin panel</h3><p>None.</p></div>
     <div class="card"><h3>Integrations</h3><p>Failures also go to the Google Sheet log service.</p></div>
 
     <div class="card warn"><h3>Accepted risks (do not "fix" without a new decision)</h3><ul>
       <li>IMPEX-D1: no UI.</li>
-      <li>IMPEX-D2: silent skips, no counts, duplicates on re-import.</li>
-      <li>IMPEX-D3: no value checks, any role, raw exception text, empty templates only.</li>
+      <li>IMPEX-D3 (part): export returns empty templates only; rows may land in an inactive parent; <code>Image</code> ignored.</li>
+    </ul></div>
+
+    <div class="card"><h3>To fix (work list)</h3><ul>
+      <li>IMPEX-D2: report per-file counts and skipped rows (file, line, reason); skip rows whose child name already exists (also earlier in the file); create a parent only with a valid child. Tests: 01-D05–D07, D19, D20.</li>
+      <li>IMPEX-D3: the TBL / MENU / ROOM value rules per row; owner only; 500 <code>Import failed</code> with rollback; export errors without an <code>error</code> key. Tests: 01-D05, D06, D10, D11, D21; 02-D04, D06.</li>
+      <li>AUTH-D2 (X-D2). Tests: 01-D14, 02-D03.</li>
     </ul></div>
 
     <div class="meta">

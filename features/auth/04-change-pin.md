@@ -30,7 +30,8 @@ A signed-in user replaces their PIN by entering the current PIN and a new one tw
 - **Confirm differs.** `New PIN and confirmation do not match` shows as soon as confirm is complete; button stays disabled.
 - **New equals current.** `New PIN must be different from the current PIN`; button stays disabled.
 - **Wrong current PIN.** 401 `Current PIN is incorrect`; the user stays on the screen and stays signed in.
-- **No limit on tries.** Wrong current PINs are not rate-limited (AUTH-D7).
+- **Too many tries.** *Today:* wrong current PINs are not rate-limited. *Target (AUTH-D7, to fix):* the 6th try within a minute gets `Too Many Attempts.` and nothing changes, even with the right current PIN; the user stays signed in on the screen.
+- **Switched off while on this screen.** *Today:* the change goes through. *Target (AUTH-D2):* 403 `Your account is inactive.` (or `Your restaurant is inactive.`); the app signs out to Login with that message — see [06](./06-resume-or-end-session.md).
 - **Logout instead.** `Logout` signs out at once, no confirmation; `mustChangePin` stays 1.
 - **App killed before changing.** On restart the app shows Change PIN again.
 - **Other sessions.** Other devices stay signed in (AUTH-D4).
@@ -47,12 +48,13 @@ A signed-in user replaces their PIN by entering the current PIN and a new one tw
 6. Given new equals current, then `New PIN must be different from the current PIN` shows and the button is disabled.
 7. Given the user taps `Logout`, then the Login phone step shows and the next sign-in shows Change PIN again.
 8. Given the app is closed on this screen, when reopened, then Change PIN shows again.
+9. *(Target, AUTH-D7.)* Given 5 wrong current PINs within a minute, when a 6th try is made, then `Too Many Attempts.` shows, the PIN is unchanged, and the user stays signed in.
 
 ## Platform notes
 
 ### POS API
 
-`POST /api/auth/changePin`, `auth:sanctum` + `restaurant.tenant`, no rate limit. FormRequest `ChangePinRequest`. The user is always the token's user. Messages in [api-contract.md](./api-contract.md#post-apiauthchangepin).
+`POST /api/auth/changePin`, `auth:sanctum` + `restaurant.tenant`. Today no rate limit; target limiter `changePin`, 5 / min per user (AUTH-D7). FormRequest `ChangePinRequest`. The user is always the token's user. Messages in [api-contract.md](./api-contract.md#post-apiauthchangepin).
 
 ### Data — MySQL
 

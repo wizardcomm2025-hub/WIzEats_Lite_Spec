@@ -2,7 +2,7 @@
 
 Use case: [01-check-phone.md](../01-check-phone.md). Contract: [api-contract.md](../api-contract.md#post-apiauthcheckphone). Fixtures and standard headers: [README.md](./README.md).
 
-All requests: `POST /api/auth/checkPhone`, no token unless stated. 422 bodies are `{ "success": false, "message": "<text>", "errors": { "phone": […] } }`.
+All requests: `POST /api/auth/checkPhone`, no token unless stated. 422 bodies are `{ "success": false, "message": "<text>", "errors": { "phone": […] } }`. Bodies show today's `success` key; only D17 checks the key name (AUTH-D10).
 
 | ID | Category | Caller | Request body / manipulation | Expected | Database after |
 |---|---|---|---|---|---|
@@ -21,4 +21,5 @@ All requests: `POST /api/auth/checkPhone`, no token unless stated. 422 bodies ar
 | AUTH-01-D13 | Over-posting | none | phone PH-NEW plus `"restaurantId": "<REST-A id>", "role": "owner", "status": 1` | 200 · `data.exists: false`; response identical to D12 | nothing created |
 | AUTH-01-D14 | Rate limiting | none, one IP | 21 requests within one minute (any valid phones) | requests 1–20: 200 · request 21: 429 · `{ "message": "Too Many Attempts." }` | unchanged |
 | AUTH-01-D15 | Authentication | `Authorization: Bearer garbage` | phone of OWN-A | 200 · `data.exists: true` (public endpoint ignores the header; no 401) | unchanged |
-| AUTH-01-D16 | Error hygiene | none | phone of OWN-A while the database is unreachable | 500 · nothing written. The body may include exception text (an `error` field, or Laravel's error output) — accepted risk (AUTH-D5). | unchanged |
+| AUTH-01-D16 | Error hygiene — *Fails until AUTH-D5 is fixed* | none | phone of OWN-A while the database is unreachable | 500 · `message: "Something went wrong"` — **no** `error` key, no SQL, file path or class name | unchanged |
+| AUTH-01-D17 | Envelope — *Fails until AUTH-D10 is fixed* | none | phone of OWN-A; then `{}` | 200 body has `status: true` and **no** `success` key · 422 body has `status: false` and no `success` key | unchanged |

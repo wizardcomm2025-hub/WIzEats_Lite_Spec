@@ -48,7 +48,7 @@
     </header>
 
     <h2>v1 scope</h2>
-    <p>Three use cases: view the profile, edit it in the app, and edit it in the panel. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour</strong>; RST-D1 to D4 keep the current rules as accepted risks.</p>
+    <p>Three use cases: view the profile, edit it in the app, and edit it in the panel. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour plus targets</strong> (re-synced 2026-11-24): RST-D1 is fixed in code; RST-D2 to RST-D6 are <em>To fix</em>.</p>
 
     <h2>How it works end-to-end</h2>
     <p>The app calls <code>/api/restaurants/showDetails</code> at start-up, on resume, and on Home and Orders. It gets the restaurant row, <code>restaurantConfig</code>, and the active zones with their tables and running order IDs. <code>ProfileScreen</code> maps that to a form with <code>restaurantToForm</code>. On Save it posts the whole form to <code>/api/restaurants/updateDetails</code>. <code>RestaurantService::updateDetails</code> writes the validated fields in one transaction, and the app merges the reply or re-reads the record. In the panel, <code>admin/restaurant.blade.php</code> posts JSON to <code>/admin/restaurant/update</code> and <code>/admin/restaurant/config/update</code>, which write whatever is sent.</p>
@@ -56,33 +56,38 @@
     <h2>What matters where you sit</h2>
 
     <div class="card"><h3>POS API</h3><ul>
-      <li>No role check and no rate limit on either endpoint.</li>
+      <li>No role check and no rate limit on either endpoint today. Target (RST-D3 / X-D1): <code>updateDetails</code> owner only (403); <code>showDetails</code> every role.</li>
       <li>Only fields in <code>RestaurantProfileRequest</code> are used. <code>enableKot</code> and the misspelt <code>invocePrefix</code> pass validation but never reach a column (RST-D2).</li>
-      <li><code>taxPercent</code> has no rule. <code>serviceChargePercent</code> needs exactly two decimals.</li>
+      <li><code>taxPercent</code> has no rule. <code>serviceChargePercent</code> needs exactly two decimals. Target (RST-D4): both numeric 0–100; names not blank; max lengths; switches not null — 422, never 500.</li>
+      <li>The Takeaway / Delivery / Room Service flags switch their channel by <code>channelCode</code> (fixed 2026-11-16).</li>
       <li>Service errors return <code>Failed to update restaurant details</code> / <code>Failed to fetch restaurant details</code> with no exception text.</li>
     </ul></div>
     <div class="card"><h3>Data — MySQL</h3><ul>
       <li>A field sent as <code>null</code> is written as <code>NULL</code>. A NOT NULL switch then fails, and the whole transaction rolls back.</li>
-      <li>The <code>order_channels</code> updates use <code>orderChannelId = 1/2/3</code> against <code>binary(16)</code> IDs and match nothing (RST-D1).</li>
+      <li><code>order_channels.isActive</code> follows the flags by <code>channelCode</code>; <code>getOrderChannels</code> lists only active channels. Restaurants created before 2026-11-16 need the one-off sync script (RST-D6).</li>
       <li>Tax is copied onto each new order. Existing orders keep theirs.</li>
       <li><code>HasBinaryUuids</code> hex-encodes any 16-byte string that isn't plain printable ASCII (finding F2).</li>
     </ul></div>
     <div class="card"><h3>POS app</h3><ul>
       <li>Visible switches: Takeaway, Discount, Show KOT Number on Bill (and the KOT name). The others are commented out but still sent as held.</li>
       <li>Every save sends <code>serviceChargePercent: null</code> and <code>companyAddress: null</code> (RST-D2).</li>
-      <li>On a phone, the Account section (Profile) shows for every role (RST-D3). The tablet rail shows it to the owner only.</li>
-      <li>Restaurant IDs are compared with <code>Number()</code> in <code>belongsToSession</code>, <code>mergeRestaurant</code> and <code>loadRestaurantCache</code>. Check this against hex IDs (finding F1).</li>
+      <li>On a phone, the Account section (Profile) shows for every role today; target owner only (RST-D3). The tablet rail shows it to the owner only.</li>
+      <li>Target (RST-D2): stop sending <code>serviceChargePercent</code> and <code>companyAddress</code>.</li>
+      <li>Restaurant IDs are compared as strings (finding F1 resolved 2026-11-24).</li>
     </ul></div>
-    <div class="card"><h3>Super-admin panel</h3><p>No validation. A missing field is written as NULL. Errors show nothing, because <code>res.json()</code> fails silently. An unknown restaurant ID gives a 500 on the page and on the config save. The page's title copy says Analytics / Category Overview.</p></div>
+    <div class="card"><h3>Super-admin panel</h3><p>No validation. A missing field is written as NULL. Errors show nothing, because <code>res.json()</code> fails silently. An unknown restaurant ID gives a 500 on the page and on the config save. Target: validation and 404 (RST-D4); <code>Save Configuration</code> also switches the Delivery / Room Service channels (RST-D5). The page's title copy says Analytics / Category Overview.</p></div>
     <div class="card"><h3>Integrations</h3><p>None. The QR ID is a UPI ID rendered as a QR on Bill Payment.</p></div>
 
-    <div class="card warn"><h3>Accepted risks (do not "fix" without a new decision)</h3><ul>
-      <li>RST-D1: the Takeaway, Delivery and Room Service switches never change the order channels. Home always offers all four.</li>
-      <li>RST-D2: an app save clears the service charge and company address. The KOT switch and invoice prefix can only be changed in the panel.</li>
-      <li>RST-D3: any role can save settings, including the UPI ID customers pay to.</li>
-      <li>RST-D4: almost no validation in the API or the panel. Negative tax is stored, and bad numbers or long text give a 500.</li>
-      <li>AUTH-D2: switched-off users and Pending / Rejected restaurants keep access.</li>
+    <div class="card"><h3>To fix (work list)</h3><ul>
+      <li>RST-D2: API saves <code>enableKOT</code> (alias <code>enableKot</code>) and <code>invoicePrefix</code>; app leaves out <code>serviceChargePercent</code> and <code>companyAddress</code>. Tests: 02-D04, D05, 02-T12.</li>
+      <li>RST-D3: <code>updateDetails</code> owner only; phone menu hides Profile for waiter / chef. Tests: 02-D18, 01-T04, 02-T13.</li>
+      <li>RST-D4: full validation in <code>RestaurantProfileRequest</code> and the two panel POSTs; 404 for unknown restaurants; create a missing config row. Tests: 02-D08–D11, D16, D25; 03-D03–D08, D10, D15.</li>
+      <li>RST-D5: panel <code>updateConfig</code> switches the <code>DELIVERY</code> / <code>ROOM_SERVICE</code> channels in one transaction. Tests: 03-D13, 03-T08, T09.</li>
+      <li>RST-D6: <code>db_script/sync_order_channels.sql</code> — one-off, re-runnable channel sync. Tests: 02-D28, 02-T22.</li>
+      <li>AUTH-D2 (X-D2): 403 for switched-off and unapproved callers (<code>showDetails</code> exempt from approval only). Tests: 01-D06, D07, 02-D19.</li>
     </ul></div>
+
+    <div class="card warn"><h3>Known quirk (finding, not a decision)</h3><p>F2: <code>HasBinaryUuids</code> hex-encodes 16-byte non-ASCII strings in responses; an app save then writes the hex back.</p></div>
 
     <div class="meta">
       <p>Summary only — the formal specs win if they disagree: <a href="./README.md">README.md</a> · <a href="./api-contract.md">api-contract.md</a> · <a href="./data-model.md">data-model.md</a> · <a href="./ui-ux.md">ui-ux.md</a> · <a href="./test-cases/README.md">test cases</a></p>

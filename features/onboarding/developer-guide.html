@@ -48,10 +48,10 @@
     </header>
 
     <h2>v1 scope</h2>
-    <p>Four use cases: register a new restaurant, wait for approval, approve or reject, and the legacy token path of the setup endpoint. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour</strong>; ONB-D1 to D4 keep the current rules as accepted risks.</p>
+    <p>Four use cases: register a new restaurant, wait for approval, approve or reject, and the legacy token path of the setup endpoint. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour plus targets</strong> (re-synced 2026-11-24): ONB-D1 and ONB-D2 are <em>To fix</em>, ONB-D3 and ONB-D4 stay accepted, and AUTH-D2 (X-D2) moves the approval gate into the API.</p>
 
     <h2>How it works end-to-end</h2>
-    <p>Login's phone step sends a new number to <code>RestaurantProfileScreen</code>. It posts to <code>/api/restaurants/setup</code> without a token. <code>RestaurantService::onboard</code> creates the restaurant (Pending), the owner (random PIN, <code>mustChangePin</code>), the config with a unique <code>restaurantCode</code>, zone Main Hall with Table 1–4 and four order channels, all in one transaction; then mails the PIN and the admin notice. The super admin clicks Accept / Reject in <code>admin/index</code>, which posts to <code>/admin/update-status/{id}</code> and mails the owner. The app's <code>PendingApprovalScreen</code> re-reads approval via <code>showDetails</code> and moves on once Accepted.</p>
+    <p>Login's phone step sends a new number to <code>RestaurantProfileScreen</code>. It posts to <code>/api/restaurants/setup</code> without a token. <code>RestaurantService::onboard</code> creates the restaurant (Pending), the owner (random PIN, <code>mustChangePin</code>), the config with a unique <code>restaurantCode</code>, zone Main Hall with Table 1–4 and four order channels (Dine In on; Takeaway, Room Service, Delivery on or off from the request flags), all in one transaction; then mails the PIN and the admin notice. The super admin clicks Accept / Reject in <code>admin/index</code>, which posts to <code>/admin/update-status/{id}</code> and mails the owner. The app's <code>PendingApprovalScreen</code> re-reads approval via <code>showDetails</code> and moves on once Accepted.</p>
 
     <h2>What matters where you sit</h2>
 
@@ -59,26 +59,33 @@
       <li><code>/api/restaurants/setup</code> is public with an optional token; no tenant middleware; 10 / min per IP.</li>
       <li>Validation messages for the profile fields are Laravel's defaults (<code>The restaurant name field is required.</code>); phone messages are custom.</li>
       <li>Errors return <code>Failed to onboard restaurant</code> with no exception text.</li>
+      <li>Target (ONB-D1): the token path needs an active owner of an active restaurant whose onboarding is not done — else 403 / 404 / 409, nothing written. No tenant middleware here, so these checks live in the service.</li>
     </ul></div>
     <div class="card"><h3>Data — MySQL</h3><ul>
       <li>Six tables in one transaction; mails only after commit.</li>
       <li>The zone upsert is keyed on <code>restaurantId</code> alone — it renames the restaurant's first zone.</li>
-      <li><code>isApproved</code> is written as posted by the panel.</li>
+      <li><code>isApproved</code> is written as posted by the panel (target: only 0, 1, 2).</li>
+      <li>Channel <code>isActive</code> is overwritten on every setup call (since 2026-11-16).</li>
     </ul></div>
     <div class="card"><h3>POS app</h3><ul>
       <li>Only the Takeaway switch is visible; active and KOT are sent on, delivery and room service off.</li>
       <li>The token in the setup response is discarded; the owner signs in after approval.</li>
       <li>Approval refresh runs only when <code>isOnboardingDone</code> is true.</li>
+      <li>Target (AUTH-D2): <code>showDetails</code> stays open to Pending / Rejected restaurants; a 403 <code>Your restaurant is inactive.</code> or <code>Your account is inactive.</code> on the check signs the user out.</li>
     </ul></div>
     <div class="card"><h3>Super-admin panel</h3><p>Accept / Reject buttons only while Pending; no confirmation; no message after the click. Only onboarded restaurants are listed.</p></div>
     <div class="card"><h3>Integrations</h3><p><code>PinMail</code> (onboarding), the plain admin notice to <code>ADMIN_EMAIL</code>, and <code>RestaurantStatusMail</code>. All failures are logged, never shown.</p></div>
 
     <div class="card warn"><h3>Accepted risks (do not "fix" without a new decision)</h3><ul>
-      <li>ONB-D1: any token can re-run setup and overwrite its restaurant, even a waiter's on an approved restaurant.</li>
-      <li>ONB-D2: the approval endpoint stores any value and can reverse a decision.</li>
       <li>ONB-D3: a mistyped e-mail or lost PIN mail has no recovery path.</li>
       <li>ONB-D4: legacy owners with onboarding not done are stuck on the Pending screen.</li>
-      <li>AUTH-D2: approval is enforced only by the app's screens, not the API.</li>
+      <li>ONB-D2 (part kept): a direct request may still change a decision, including back to Pending.</li>
+    </ul></div>
+
+    <div class="card"><h3>To fix (work list)</h3><ul>
+      <li>ONB-D1: token path of <code>setup</code> — order of checks: account (403), restaurant found (404), restaurant switched off (403), owner role (403), onboarding not done (409 <code>Restaurant is already onboarded</code>). One winner for parallel calls. Tests: 04-D02, D07, D10–D13.</li>
+      <li>ONB-D2: <code>update-status</code> validates <code>isApproved</code> as <code>required|in:0,1,2</code> (no more 500) and answers 404 for an unknown id. Tests: 03-D06, D07, D09, D18.</li>
+      <li>AUTH-D2 (X-D2): 403 <code>Your restaurant is not approved.</code> on every protected call except <code>showDetails</code> and <code>logout</code>. Tests: 02-D02, D03, D06, 02-T13.</li>
     </ul></div>
 
     <div class="meta">

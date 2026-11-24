@@ -2,7 +2,7 @@
 
 Sources:
 
-- `db_script/tables/tables.sql`
+- `db_script/pos_stage.sql` (re-checked 2026-11-24: no ORD table changed)
 - `app/Services/Order/KotService.php` (`createOrderWithKot`, `addKotToOrder`, `getMergedBill`)
 - `app/Models/Order.php`, `Kot.php`, `OrderItem.php`
 
@@ -13,13 +13,13 @@ Sources:
 | `orderId` | new GUID | — |
 | `orderNumber` | `<restaurantCode>/<n>` (ORD-D3) | — |
 | `restaurantId` | the caller's restaurant | — |
-| `tableId`, `roomId` | `hex2bin` of what was sent; the app sends `null` (ORD-D2) | — |
-| `orderChannelId` | `hex2bin` of the posted ID — **not checked** to be the restaurant's channel | — |
+| `tableId`, `roomId` | `hex2bin` of what was sent (the app sends the real IDs since the ORD-D2 fix); not checked today (target ORD-D1) | — |
+| `orderChannelId` | `hex2bin` of the posted ID — **not checked** to be the restaurant's channel today (target ORD-D1) | — |
 | `orderStatus` | 0 | — (BILL sets 1 / 2) |
 | `taxPercent` | `restaurant_configs.taxPercent` or 0 | — |
-| `subTotal` | Σ quantity × price as sent | + each added KOT |
+| `subTotal` | Σ quantity × price as sent (target: menu prices) | + each added KOT |
 | `taxAmount`, `discount…`, `roundOff`, `grandTotal` | 0 (column defaults) | BILL |
-| `customerName`, `customerPhone` | never set (ORD-D3) | — |
+| `customerName`, `customerPhone` | never set today; target: as sent (ORD-D3) | — |
 | `createdBy`, `createdByUserId` | caller's role and user ID | — |
 
 ## `kots`
@@ -32,24 +32,24 @@ Sources:
 |---|---|
 | `orderItemId` | GUID |
 | `restaurantId`, `orderId`, `kotId` | the order's |
-| `menuItemId` | `hex2bin` of what was sent — not checked (ORD-D1) |
-| `menuItemName` | as sent (may be null) |
+| `menuItemId` | `hex2bin` of what was sent — not checked today (target: an active item of the restaurant — ORD-D1) |
+| `menuItemName` | as sent (may be null); target: the menu's name |
 | `quantity` | int ≥ 1 |
-| `price` | decimal(10,2), as sent ≥ 0 |
+| `price` | decimal(10,2), as sent ≥ 0; target: the menu's price |
 | `total` | quantity × price |
 | `taxPercent` | the order's |
 | `taxAmount` | round(total × taxPercent / 100, 2) |
 
 ## Numbering (ORD-D3)
 
-- **Order:** take today's orders of the restaurant ordered by `orderId` DESC, which is random, and keep the first. If its number is `<code>/<k>`, the new number is `<code>/<k+1>`, else `<code>/1`.
-- **KOT:** take today's KOTs of the restaurant (through `order_items`) ordered by `kotId` DESC, which is random, and keep the first. If its number is numeric `k`, the new number is `k+1`, else `1`.
-- There is no unique key on either, so duplicates are possible.
+- **Order:** take today's orders of the restaurant ordered by `created_at` DESC (since 2026-11-16; before, by the random `orderId`) and keep the first. If its number is `<code>/<k>`, the new number is `<code>/<k+1>`, else `<code>/1`.
+- **KOT:** take today's KOTs of the restaurant (through `order_items`) ordered by `created_at` DESC and keep the first. If its number is numeric `k`, the new number is `k+1`, else `1`.
+- There is no lock and no unique key on either, so parallel requests can get the same number. Target: allocated under a lock, unique per restaurant per day.
 
 ## Status side effects
 
-- `tables.status = 2` / `rooms.status = 2` is attempted with `WHERE tableId = '<hex text>'`, which never matches (ORD-D2).
-- The occupy / leave of a table (status 1 / 0) goes through TBL's `tableSave`.
+- `tables.status = 2` / `rooms.status = 2` with the converted ID (since 2026-11-16; before, it never matched).
+- The occupy / leave of a table (status 1 / 0) goes through TBL's `tableSave`, of a room through ROOM's `roomSave`.
 
 ## Transactions
 

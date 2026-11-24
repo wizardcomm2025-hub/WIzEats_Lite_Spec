@@ -1,6 +1,6 @@
 # Super-admin panel — test cases
 
-Rules: [conventions.md → Test cases](../../../conventions.md#test-cases-test-cases). Results go in `laravel-pos-api-dev_guid/specs/admin-panel/test-results.md`, never here.
+Rules: [conventions.md → Test cases](../../../conventions.md#test-cases-test-cases). Results go in `laravel-pos-api/api/specs/admin-panel/test-results.md`, never here.
 
 **Expected results describe today's behaviour**, as fixed by ADM-D1 to ADM-D3 and the inherited decisions ([README](../README.md#decisions)). No case is blocked. Tester cases use a desktop browser; developer cases send HTTP requests with a session cookie (and the CSRF token for POSTs).
 
@@ -62,4 +62,4 @@ The AUTH, ONB, ORD and RPT fixtures apply ([AUTH](../../auth/test-cases/README.m
 ## How to run
 
 - **Tester cases:** a desktop browser (Chrome), the panel at `APP_URL`.
-- **Developer cases:** PHPUnit feature tests (decided 2026-11-13) in `laravel-pos-api-dev_guid/tests/Feature/AdminPanel/`, one class per use case and one test method per case ID. In PHPUnit, sign in with `actingAs($admin, 'admin')`, except for the sign-in cases themselves. By hand, to get a session: `GET /` (it sets the cookies), read the `csrf-token` meta tag, then `POST /admin/login` with `X-CSRF-TOKEN`. Check the database with a SQL client.
+- **Developer cases:** PHPUnit feature tests (decided 2026-11-13) in `laravel-pos-api/api/tests/Feature/AdminPanel/`, one class per use case and one test method per case ID. In PHPUnit, sign in with `actingAs($admin, 'admin')`, except for the sign-in cases themselves. By hand, to get a session: `GET /` (it sets the cookies), read the `csrf-token` meta tag, then `POST /admin/login` with `X-CSRF-TOKEN`. Check the database with a SQL client.

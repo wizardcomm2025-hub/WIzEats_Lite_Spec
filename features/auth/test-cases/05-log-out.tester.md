@@ -14,3 +14,4 @@ Logout lives in the side drawer on a phone and in the nav rail on a tablet. Run 
 | AUTH-05-T06 | AC7 | OWN-A signed in, with a cart or open order in progress | Log out; sign in as OWN-B on the same device. | Nothing of REST-A (menu, tables, cart, orders, restaurant name) is visible to OWN-B. |
 | AUTH-05-T07 | Roles | Signed in as CHF-A, then as WTR-A | Find and use Logout. | Available for every role; same dialog and result. |
 | AUTH-05-T08 | Double tap | Signed in, slow network | Tap `Logout` in the dialog twice quickly. | One spinner; ends on the Login screen once; no error. |
+| AUTH-05-T09 | Alt: blocked user logs out | WTR-A signed in on DEV-1; owner switches WTR-A off | Before doing anything else on DEV-1, open the drawer and log out. | Logout works; Login screen shows (no error). |

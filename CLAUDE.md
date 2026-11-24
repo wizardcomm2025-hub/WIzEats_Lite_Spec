@@ -1,8 +1,8 @@
 # CLAUDE.md — App-Specs (WhizEats POS Lite)
 
-This is the `App-Specs` folder at `C:\whizeats-lite\App-Specs`. It is the single source of truth for **what** WhizEats POS Lite does — covering the Laravel POS API, the MySQL database, the React Native POS app and the super-admin web panel listed in [`project-overview.md`](./project-overview.md#platforms).
+This is the spec folder at `D:\whizeats_Lite_Spec\spec` (formerly `App-Specs`). It is the single source of truth for **what** WhizEats POS Lite does — covering the Laravel POS API, the MySQL database, the React Native POS app and the super-admin web panel listed in [`project-overview.md`](./project-overview.md#platforms).
 
-**This folder contains no code.** It contains specifications, API contracts, data models, UI/UX notes, test cases and architecture decisions. Implementation happens in the sibling repos `../laravel-pos-api-dev_guid` (API, super-admin panel, SQL in `db_script/`) and `../POS_APP-master` (React Native app). Implementation plans, task status and test results live in `../laravel-pos-api-dev_guid/specs/<feature>/`.
+**This folder contains no code.** It contains specifications, API contracts, data models, UI/UX notes, test cases and architecture decisions. Implementation happens in the API repo `C:\xampp82\htdocs\laravel-pos-api\api` (API, super-admin panel, migrations; branch `dev`) and the app `D:\whizeats_Lite_Spec\frontend\POS_APP-kot` (React Native). The current schema dump is `D:\whizeats_Lite_Spec\db_script\pos_stage.sql`. Implementation plans, task status and test results live in `laravel-pos-api/api/specs/<feature>/`.
 
 > **Setup status.** Open setup items are listed in [`GETTING-STARTED.md`](./GETTING-STARTED.md).
 
@@ -18,7 +18,7 @@ For a specific feature, also read:
 3. `features/<feature-name>/README.md` — feature summary and index of use cases
 4. The relevant use-case file(s), plus `data-model.md`, `api-contract.md`, `ui-ux.md` and `test-cases/`
 
-For anything on a POS app screen, also read `../POS_APP-master/CLAUDE.md` (theme, shared components, navigation by role).
+For anything on a POS app screen, also read `POS_APP-kot/CLAUDE.md` (theme, shared components, navigation by role).
 
 ---
 
@@ -61,16 +61,16 @@ The same table appears in `project-overview.md`; keep them in sync.
 
 | Concern | Decision |
 |---|---|
-| Backend stack | Laravel 12 / PHP 8.2 (`laravel-pos-api-dev_guid`). Route → controller → FormRequest → service (`app/Services/<Module>/`) → Eloquent model |
+| Backend stack | Laravel 12 / PHP 8.2 (`laravel-pos-api/api`). Route → controller → FormRequest → service (`app/Services/<Module>/`) → Eloquent model |
 | Database | One MySQL / MariaDB schema. Every restaurant row carries `restaurantId`, and every query filters on the tenant bound by `RestaurantTenantMiddleware` |
 | Data access | Eloquent and the query builder inside services |
 | Authentication | Sanctum tokens for the POS app (phone + PIN; legacy OTP). Session guard `admin` for the super-admin panel. `restaurantId` and `userId` come from the token, never from the request body |
 | Authorization | Roles `owner` / `waiter` / `chef` in `users.role`. The app shows screens by role; the API does not check roles yet (see Known gaps) |
 | API shape | `POST /api/<module>/<action>`; body `{ status, message, data }`; real HTTP codes (422 validation, 401, 403, 404, 500) |
-| Client surfaces | React Native POS app (`POS_APP-master`); Blade super-admin panel in the API repo |
+| Client surfaces | React Native POS app (`POS_APP-kot`); Blade super-admin panel in the API repo |
 | Supported languages | Super-admin panel: en, es, de, bn. POS app: English only (hard-coded texts, no translation library; confirmed 2026-11-13) |
 | API contract | Each feature's `api-contract.md`. `api/openapi.yaml` will be generated from code later, is never hand-edited, and `api-contract.md` wins (decided 2026-11-13) |
-| Developer test runner | PHPUnit 11 feature tests in `laravel-pos-api-dev_guid/tests/Feature/<FeatureFolder>/`, one class per use case, one method per case ID; tester cases stay manual (decided 2026-11-13) |
+| Developer test runner | PHPUnit 11 feature tests in `laravel-pos-api/api/tests/Feature/<FeatureFolder>/`, one class per use case, one method per case ID; tester cases stay manual (decided 2026-11-13) |
 
 ---
 
@@ -87,7 +87,7 @@ Capture what you know in `intake/<topic-slug>.md`. The [`spec-intake`](./.claude
 5. Add `ui-ux.md` for any feature with a POS app screen (or an admin panel page, if in scope)
 6. Add `developer-guide.html` (HTML, not markdown; copy the template)
 7. Add `test-cases/`: one tester and one developer file per use case, plus `README.md`
-8. Get user approval, then plan in `../laravel-pos-api-dev_guid/specs/<name>/plan.md` and `tasks.md`
+8. Get user approval, then plan in `laravel-pos-api/api/specs/<name>/plan.md` and `tasks.md`
 
 ## How to edit an existing spec
 
@@ -107,7 +107,7 @@ State: what is changing and why; which layers are affected; **breaking** or **ad
 
 **Acceptance criteria are mandatory**, and specific enough that a tester can derive pass/fail cases without asking. For app screens they include loading, empty, error and offline states and the role that sees the screen.
 
-**Test cases change with the spec.** Tester (UI) and developer (API) cases per use case, under `features/<name>/test-cases/`. Test **definitions** live here; **actual results** are recorded in `../laravel-pos-api-dev_guid/specs/<name>/test-results.md`.
+**Test cases change with the spec.** Tester (UI) and developer (API) cases per use case, under `features/<name>/test-cases/`. Test **definitions** live here; **actual results** are recorded in `laravel-pos-api/api/specs/<name>/test-results.md`.
 
 **Prerequisites are mandatory.** State `none` explicitly when there are none.
 
@@ -121,8 +121,8 @@ State: what is changing and why; which layers are affected; **breaking** or **ad
 - When asked to write a spec, read `conventions.md` in full first.
 - When asked to update a spec, read the existing file in full first.
 - When something is ambiguous, check `project-overview.md` (glossary) first. If that doesn't resolve it, stop and ask. Do not guess.
-- For data-model facts, read `../laravel-pos-api-dev_guid/db_script/tables/tables.sql`, `database/migrations/` and `app/Models/`. If a table isn't there, ask the user for it.
+- For data-model facts, read `db_script/pos_stage.sql`, `database/migrations/` and `app/Models/`. If a table isn't there, ask the user for it.
 - For real API behaviour (status codes, messages), read `routes/api.php`, the controller, its FormRequest in `app/Http/Requests/`, the service in `app/Services/`, `app/Http/Middleware/RestaurantTenantMiddleware.php` and `bootstrap/app.php`. Never invent a response a test expects; raise an open question instead.
-- For app behaviour (screens, messages, role routing), read `../POS_APP-master/src/app/` and its `CLAUDE.md`.
+- For app behaviour (screens, messages, role routing), read `POS_APP-kot/src/app/` and its `CLAUDE.md`.
 - Preserve the history of open questions.
 - This folder is a git repository (branch `main`, remote `origin` on GitHub). Do not create branches, commits or pushes here unless the user asks.

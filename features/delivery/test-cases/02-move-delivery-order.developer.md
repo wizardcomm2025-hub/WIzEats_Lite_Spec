@@ -1,18 +1,22 @@
 # 02 — Move a delivery order on — developer cases
 
-Use case: [02-move-delivery-order.md](../02-move-delivery-order.md). Contract: [api-contract.md](../api-contract.md#post-apiordersupdate-statuskotid). Fixtures: [README.md](./README.md#fixtures) (WA-CATCH and SNAP for every case).
+Use case: [02-move-delivery-order.md](../02-move-delivery-order.md). Contract: [api-contract.md](../api-contract.md#post-apiordersupdate-statuskotid). Fixtures: [README.md](./README.md#fixtures).
 
-`POST /api/orders/update-status/<id>`, JSON, WTR-A's token unless stated. "Not-found" = 400 `{ status: false, message: "KOT not found" }`. "Cast-0 error" = 400 `{ status: false, message: "SQLSTATE[22007]: … 1292 Truncated incorrect DOUBLE value … update `kots` …" }`, or 500 `{ message: "Server Error" }` if that text isn't valid UTF-8 — record which. "Unchanged" = every `kots` row matches SNAP, and WA-CATCH received nothing.
+`POST /api/orders/update-status/<id>`, JSON, WTR-A's token unless stated; `<id>` is the KOT's hex unless stated. "Updated(s)" = 200 `{ status: true, message: "KOT status updated successfully", data: { kotId: "<hex>", status: s } }`. Today's bodies: "Not-found" = 400 `{ status: false, message: "KOT not found" }`; "Cast-0 error" = 400 with SQL text, or 500 `{ message: "Server Error" }`. "Unchanged" = every `kots` row matches SNAP and WA-CATCH received nothing. Cases tagged *Fails until … is fixed* assert the target; today's result is in brackets.
 
-| ID | Category | Request / manipulation | Expected | After |
+| ID | Category | Request / manipulation | Expected | Database after |
 |---|---|---|---|---|
-| DLV-02-D01 | — (happy path; accepted DLV-D2) | `<id>` = KOT-D hex; `{ "status": 1 }` | Not-found | Unchanged |
-| DLV-02-D02 | Restaurant isolation / Error hygiene (accepted DLV-D2) | `<id>` = KOT-L hex; `{ "status": 1 }` | Cast-0 error | Unchanged (no KOT of any restaurant changed) |
-| DLV-02-D03 | Business-rule bypass (accepted DLV-D2) | `<id>` = `0`; `NaN`; `00000000000000000000000000000000` with `{ "status": 4 }` | Cast-0 error each | Unchanged |
-| DLV-02-D04 | Input validation | KOT-D hex with (a) `{}` (b) `{ "status": "x" }` (c) `{ "status": 99 }` | (a)(b) 422 `{ status: false, message: "Validation error", errors: { status: […] } }` (c) Not-found | Unchanged |
-| DLV-02-D05 | Role (accepted DLV-D2) | D01 and D02 with CHF-A's token, then OWN-A's | Same replies as D01 / D02 (no 403) | Unchanged |
-| DLV-02-D06 | Over-posting | KOT-D hex `{ "status": 1, "kotId": "<KOT-L hex>", "customerPhone": "9999999999" }` | Not-found | Unchanged |
-| DLV-02-D07 | Authentication / Account state / Super-admin | no token → 401; panel cookie only → 401; `GET` → 405; NOREST → 403; WTR-A-OFF old token, D01 → Not-found (AUTH-D2) | as listed | Unchanged |
-| DLV-02-D08 | Rate limiting | 60 × D01 in a minute | all Not-found; no 429 | Unchanged |
-| DLV-02-D09 | Injection | `<id>` = `1 OR 1=1` (URL-encoded); `1; DROP TABLE kots` | Not-found (cast to 1) | Unchanged; `kots` intact |
-| DLV-02-D10 | Error hygiene (accepted DLV-D2, AUTH-D5) | Inspect the D02 body; repeat D02 with `APP_DEBUG=true` | D02 body exposes the SQL statement and table name; with debug on, a 500 also carries `exception` and `trace` | Unchanged |
+| DLV-02-D01 | — (happy path) — *Fails until DLV-D2 is fixed* | DLV-KOT; `{ "status": 1 }` | Updated(1) (today: KOT-D → Not-found; KOT-L → Cast-0 error) | DLV-KOT status 1 (today: Unchanged) |
+| DLV-02-D02 | — (happy path) — *Fails until DLV-D2 is fixed* | DLV-KOT in turn: 1, 4, 3 | Updated(1), Updated(4), Updated(3) | status 3; DLV-ORD leaves the board list |
+| DLV-02-D03 | Business-rule bypass — *Fails until DLV-D2 is fixed* | DLV-KOT (Pending): `4`; then `3`; then, after `2` (Rejected), `1` | 409 `{ status: false, message: "Invalid status change", data: null }` each, except the `2` → Updated(2) | final status 2 |
+| DLV-02-D04 | Input validation — (c) *Fails until DLV-D2 is fixed* | DLV-KOT with (a) `{}` (b) `{ "status": "x" }` (c) `{ "status": 99 }` | (a)(b) 422 `{ status: false, message: "Validation error", errors: { status: […] } }` (c) 422 `The selected status is invalid.` (today: Not-found / Cast-0 error) | Unchanged |
+| DLV-02-D05 | Restaurant isolation — *Fails until DLV-D2 is fixed* | DLV-KOT-B (REST-B) with WTR-A; `{ "status": 1 }` | 404 `{ status: false, message: "KOT not found", data: null }` (today: Not-found or Cast-0 error) | Unchanged |
+| DLV-02-D06 | Business rule — *Fails until DLV-D2 is fixed* | DINE-KOT (not a delivery order); `{ "status": 1 }` | 404 `{ status: false, message: "KOT not found", data: null }` | Unchanged |
+| DLV-02-D07 | Authentication / Account state / Super-admin — switched-off part *Fails until AUTH-D2 is fixed* | no token → 401; panel cookie only → 401; `GET` → 405; NOREST → 403; WTR-A-OFF old token → 403 `Your account is inactive.` (today Not-found) | as listed | Unchanged |
+| DLV-02-D08 | Role — *Fails until DLV-D2 is fixed* | DLV-KOT `{ "status": 1 }` with CHF-A's token; then with OWN-A's | CHF-A: 403 `{ status: false, message: "You do not have permission to perform this action", data: null }` (today: Not-found / Cast-0); OWN-A: Updated(1) | status 1 after OWN-A |
+| DLV-02-D09 | Over-posting | DLV-KOT `{ "status": 1, "kotId": "<KOT-L hex>", "customerPhone": "9999999999" }` | Updated(1) | only DLV-KOT changes; WhatsApp to 9876543210, not 9999999999 |
+| DLV-02-D10 | Input validation / Injection / Error hygiene — *Fails until DLV-D2 is fixed* | `<id>` = `0`; `NaN`; `00000000000000000000000000000000`; `1 OR 1=1` (URL-encoded); `{ "status": 4 }` each | 404 `{ status: false, message: "KOT not found", data: null }` each — no SQL text (today: Cast-0 error / Not-found; the body exposes the SQL statement) | Unchanged |
+| DLV-02-D11 | Rate limiting | 60 calls in a minute on an unknown hex ID | all answered; no 429 | Unchanged |
+| DLV-02-D12 | Concurrency / Error hygiene | Two parallel calls on DLV-KOT (Pending): `1` and `2`; repeat D10 with `APP_DEBUG=true` | one Updated, the other 409 (target); with debug on, still no `exception` / `trace` in any body | status 1 or 2 |
+| DLV-02-D13 | Integration — *Fails until DLV-D3 is fixed* | DLV-KOT: `1`, then `4`; separately a delivery KOT whose order has no `customerPhone`: `1` | WA-CATCH gets `Your order has been accepted.` and `Your order is out for delivery.` addressed to 9876543210; nothing for the order without a phone (logged) (today: no update, nothing sent; when it worked it went to a fixed number) | statuses 4 and 1 |
+| DLV-02-D14 | Business rule — *Fails until DLV-D3 is fixed* | DLV-KOT at 4; generate the bill and pay it in full through BILL (`payments/create2`) | DLV-KOT status 3; a bill and payment exist for DLV-ORD; WA-CATCH gets `Your order has been completed.`; DLV-ORD no longer in the board list (today: only `update-status` 3 changes the KOT; no bill or payment) | — |

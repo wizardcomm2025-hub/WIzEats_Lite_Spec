@@ -7,4 +7,4 @@ Signed in as OWN-A on the Dashboard.
 | ID | Covers | Steps | Expected |
 |---|---|---|---|
 | RPT-02-T01 | AC1 | No paid orders this year. Scroll to the trends; tap `Daily`, `Weekly`, `Monthly`. | Revenue Trend: `No Data Available` · `Transactions will appear here once recorded.`; Order Trend: `No Order Data` · `Order trends will appear here once orders are placed.` — for all three. |
-| RPT-02-T02 | AC2 / AC3 | Ask a developer to pay one order today (12 Nov). Pull down; tap `Daily`, `Weekly`, `Monthly`. | `Daily`: one point `Thursday`; `Weekly`: one point `Week 2`; `Monthly`: one point `November`; each with revenue 525 and 1 order. |
+| RPT-02-T02 | AC2 / AC3 | Pay one order today in the app. Pull down; tap `Daily`, `Weekly`, `Monthly`. | `Daily`: one point for today's day name; `Weekly`: one point `Week <CEIL(day/7)>`; `Monthly`: one point for this month; each with the order's revenue and 1 order. |

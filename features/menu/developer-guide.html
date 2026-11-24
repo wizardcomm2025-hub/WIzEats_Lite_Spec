@@ -44,39 +44,40 @@
     <header class="hero">
       <div class="eyebrow">Feature developer guide · MENU</div>
       <h1>Menu — categories &amp; items</h1>
-      <p class="lede">Categories, menu items with prices and photos, the paged ordering menu, a base64 image endpoint, and two panel pages. Reading works; most writes fail today.</p>
+      <p class="lede">Categories, menu items with prices and photos, the paged ordering menu, a base64 image endpoint, and two panel pages. Since 2026-11-18 reads and writes work from the app; the panel Items page, image checks and some server limits are still to fix.</p>
     </header>
 
     <h2>v1 scope</h2>
-    <p>Four use cases: manage categories, manage menu items, the menu in the panel, and image upload. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour</strong>; MENU-D1 to D4 keep the current rules as accepted risks.</p>
+    <p>Four use cases: manage categories, manage menu items, the menu in the panel, and image upload. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour plus targets</strong> (re-synced 2026-11-24): MENU-D1 and MENU-D2 are fixed; MENU-D3 to MENU-D6 are <em>To fix</em>.</p>
 
     <h2>How it works end-to-end</h2>
-    <p><code>MenuCategoryScreen</code> reads <code>getItemsCategory</code> (categories, each with all its items) and creates categories through <code>categorySave</code>. <code>MenuItemManagementScreen</code> pages one category's items through <code>showCategoryMenuItems</code> and saves through <code>menuItemSave</code>, which can carry a base64 image. The ordering screen loads the whole active menu through <code>getMenuItems</code> (100 per page). The panel's <code>categories</code> and <code>items</code> pages write with the query builder.</p>
+    <p><code>MenuCategoryScreen</code> reads <code>getItemsCategory</code> (categories, each with all its items) and creates, edits and switches categories through <code>categorySave</code>. <code>MenuItemManagementScreen</code> pages one category's items through <code>showCategoryMenuItems</code> and saves through <code>menuItemSave</code>, which can carry a base64 image. The ordering screen loads the whole active menu through <code>getMenuItems</code> (100 per page). The panel's <code>categories</code> and <code>items</code> pages write with the query builder.</p>
 
     <h2>What matters where you sit</h2>
     <div class="card"><h3>POS API</h3><ul>
-      <li><code>ItemService</code> converts IDs with <code>hex2bin</code> only for <code>categoryId</code> on item create. Every other ID lookup compares hex with binary (MENU-D2).</li>
-      <li><code>filled('menuItemId')</code> is true for <code>0</code>, so the app's create runs the update rules (MENU-D1).</li>
-      <li>No role checks, no price bounds, no category ownership check, no rate limits.</li>
-      <li><code>/api/image/upload</code> catches its own failure and still answers 201.</li>
+      <li><code>ItemService</code> converts IDs with <code>hex2bin</code> (MENU-D2 fixed), except the <code>getItemsCategory</code> filter.</li>
+      <li><code>saveMenuItem</code> (rewritten 2026-11-18) checks: <code>menuItemId</code> hex, price &gt; 0, own non-deleted category, non-blank name, unique name per category. <code>saveCategory</code> checks unique category names (deleted ones count today).</li>
+      <li>Still to fix (MENU-D4): owner-only writes, price / length limits as 422, 404 for unknown IDs, 422 for malformed list filters, deleted items in <code>items</code>.</li>
+      <li><code>/api/image/upload</code> catches its own failure and still answers 201; no content or size check (MENU-D5).</li>
     </ul></div>
     <div class="card"><h3>Data — MySQL</h3><ul>
       <li><code>price</code> is <code>decimal(10,2)</code>. <code>isVeg</code> defaults to false through the API, but to 1 in the column.</li>
-      <li>Image files are never cleaned up.</li>
+      <li>Image files are never cleaned up (target: a replaced image's file is deleted — MENU-D5).</li>
     </ul></div>
     <div class="card"><h3>POS app</h3><ul>
-      <li>The <code>menuItemId: editingItem?.menuItemId || 0</code> payload (MENU-D1).</li>
-      <li>The Item Management filter <code>Number(item.categoryId) === Number(selectedCategoryId)</code> (NaN === NaN).</li>
-      <li>Category add / edit errors are never shown. A switch is optimistic, then reverted.</li>
+      <li>Add sends <code>menuItemId: ""</code> (MENU-D1 fixed); IDs are compared as strings (MENU-D2 fixed).</li>
+      <li>Category and item sheets close only on success and toast the server message on failure. A category switch is optimistic, then reverted on failure.</li>
+      <li>The Edit Category sheet starts with an empty description and clears it on save (MENU-D6).</li>
     </ul></div>
-    <div class="card"><h3>Super-admin panel</h3><p>The Categories page works, and its switch doesn't cascade. The Items page writes <code>menuItemName</code> (wrong column) and renders raw binary IDs (MENU-D3).</p></div>
+    <div class="card"><h3>Super-admin panel</h3><p>The Categories page works, and its switch doesn't cascade. The Items page writes <code>menuItemName</code> (wrong column) and renders raw binary IDs (MENU-D3 — to fix, with the API's item rules and a cascading category switch).</p></div>
     <div class="card"><h3>Integrations</h3><p>Local <code>public</code> disk for images; needs <code>storage:link</code>.</p></div>
 
-    <div class="card warn"><h3>Accepted risks (do not "fix" without a new decision)</h3><ul>
-      <li>MENU-D1: Add Menu Item fails in the app.</li>
-      <li>MENU-D2: category and item edits and switches fail; Item Management is always empty.</li>
-      <li>MENU-D3: the panel Items page add / edit / switch don't work.</li>
-      <li>MENU-D4: no role, price, category or image checks; the upload answers 201 on failure.</li>
+    <div class="card"><h3>To fix (work list)</h3><ul>
+      <li>MENU-D3: panel Items page (column <code>name</code>, hex IDs, API rules, 404s); category switch cascades. Tests: 03-D03–D07, D11; 03-T03, T05, T06.</li>
+      <li>MENU-D4: X-D1 roles; price ≤ 99 999 999.99 and names ≤ 255 as 422; 404 <code>Menu item not found</code> / <code>Category not found</code>; deleted categories don't block names; working <code>itemCategoryId</code> filter; <code>items</code> without deleted ones; 422 for malformed filters. Tests: 01-D06, D08, D09, D12, D15; 02-D04, D11, D16, D21, D22; 04-D07; 01-T01.</li>
+      <li>MENU-D5: real PNG / JPEG, ≤ 2 MB, honest errors, old file deleted on replace. Tests: 02-D20, 04-D03–D05, D09.</li>
+      <li>MENU-D6: Edit Category keeps the description. Test: 01-T09.</li>
+      <li>AUTH-D2 (X-D2). Tests: 01-D11, 02-D17, 04-D07.</li>
     </ul></div>
 
     <div class="meta">

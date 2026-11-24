@@ -48,34 +48,38 @@
     </header>
 
     <h2>v1 scope</h2>
-    <p>Three use cases: generate the bill, take payment, get a saved bill. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour</strong>; BILL-D1 to D3 keep the current rules as accepted risks.</p>
+    <p>Three use cases: generate the bill, take payment, get a saved bill. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour plus targets</strong> (re-synced 2026-11-24; no billing server code changed): BILL-D2 is fixed in the app; BILL-D1 and BILL-D3 are <em>To fix</em>.</p>
 
     <h2>How it works end-to-end</h2>
     <p>The app's Bill Payment page prices the order and posts <code>orders/generateBill/{id}</code> with eight totals, then <code>payments/create2</code> with the legs. The server stores the totals as sent, snapshots the lines into <code>bill_items</code>, numbers the bill per financial year, and on payment closes the order, marks the bill paid and frees the table or room.</p>
 
     <h2>What matters where you sit</h2>
     <div class="card"><h3>POS API</h3><ul>
-      <li>All totals and payment amounts come from the client; nothing is reconciled (BILL-D1).</li>
-      <li><code>payments.*.amount</code> is validated but not stored; <code>paymentType</code> is free text.</li>
-      <li>Payment errors are always HTTP 500, with exception text for non-database errors (BILL-D3).</li>
-      <li><code>payments/bill/{id}</code> converts the ID outside its <code>try</code> (BILL-D2).</li>
+      <li>All totals and payment amounts come from the client; nothing is reconciled (BILL-D1). Target: the server works the bill out from the lines, the order's tax % and the discount (the app's rules), and the legs must add up to the grand total.</li>
+      <li><code>payments.*.amount</code> is validated but not stored; <code>paymentType</code> is free text. Target: stored (new column), <code>CASH</code> / <code>UPI</code> only.</li>
+      <li>Payment errors are always HTTP 500, with exception text for non-database errors (BILL-D3). Target: 404 / 409 / 422 and no exception text; owner and waiter only; <code>Idempotency-Key</code> honoured.</li>
+      <li><code>payments/bill/{id}</code> converts the ID outside its <code>try</code> (target 404 — BILL-D3).</li>
     </ul></div>
     <div class="card"><h3>Data — MySQL</h3><ul>
-      <li>Bill numbers: <code>max + 1</code> per restaurant and financial year, serialised by locking <code>restaurant_configs</code>; no unique key.</li>
+      <li>Bill numbers: <code>max + 1</code> per restaurant and financial year, serialised by locking <code>restaurant_configs</code>; no unique key (target: unique key — BILL-D3).</li>
       <li><code>bill_items.menuItemName</code> is NOT NULL, so orders with an unnamed line can't be billed.</li>
       <li>Generating a bill overwrites the order's <code>subTotal</code> with the posted one.</li>
     </ul></div>
     <div class="card"><h3>POS app</h3><ul>
-      <li>The bill page is unreachable: <code>Number(hex)</code> in the cart, and <code>getAllOrders</code> failing from Order History (BILL-D2, ORD-D2).</li>
-      <li>Once reachable, it bills first, checks the saved total equals its own, then pays all legs in one request.</li>
+      <li>The bill pages open from the cart (<code>View Bill</code>, <code>Collect Payment</code>) and Order History → Live (BILL-D2 fixed with ORD-D2).</li>
+      <li>It bills first, checks the saved total equals its own, then pays all legs in one request. <code>useCustomerDisplay</code> mirrors the total and the change on terminals with a customer display; Bill Breakdown plays a <code>Discount Applied!</code> animation.</li>
     </ul></div>
     <div class="card"><h3>Super-admin panel</h3><p>None.</p></div>
     <div class="card"><h3>Integrations</h3><p>None. UPI is only recorded.</p></div>
 
     <div class="card warn"><h3>Accepted risks (do not "fix" without a new decision)</h3><ul>
-      <li>BILL-D1: client-supplied totals and amounts; unnamed lines block billing.</li>
-      <li>BILL-D2: app can't bill or pay; tables of app orders not freed; bare 500 on bad bill ID.</li>
-      <li>BILL-D3: any role; no void/refund; numbering lock; exception text in errors.</li>
+      <li>BILL-D3 (part): no void, edit or refund of a bill.</li>
+    </ul></div>
+
+    <div class="card"><h3>To fix (work list)</h3><ul>
+      <li>BILL-D1: server-computed bill (discount only from the client; switch and cap checks); payments CASH / UPI, amounts stored and adding up to the grand total. Tests: 01-D04–D06, D14, D15, 02-D03, D05, D18, D19.</li>
+      <li>BILL-D3: owner + waiter; <code>Idempotency-Key</code>; unique bill numbers; 404 / 409 / 422 codes; no exception text; dashed IDs everywhere. Tests: 01-D02, D03, D07, D08, D12, 02-D06, D07, D09, D11, D12, 03-D03, D04.</li>
+      <li>Also (DLV-D3): paying a delivery order completes its KOT and sends the completed message.</li>
     </ul></div>
 
     <div class="meta">

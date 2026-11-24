@@ -11,7 +11,7 @@ Reads an order's saved bill (for a reprint). The app has a call for it but no sc
 
 ## Actors & preconditions
 
-- **Actor:** any signed-in restaurant user.
+- **Actor:** today any signed-in restaurant user; target owner and waiter (BILL-D3).
 - **Preconditions:** none.
 
 ## Main flow
@@ -22,13 +22,13 @@ Reads an order's saved bill (for a reprint). The app has a call for it but no sc
 ## Alternative flows
 
 - **No bill, or another restaurant's order.** 404 `{ status: false, message: "Bill not found" }`.
-- **ID not hex / odd length.** 500 `{ "message": "Server Error" }` — the conversion happens outside the error handling (BILL-D2).
+- **ID not hex / odd length.** Today 500 `{ "message": "Server Error" }` — the conversion happens outside the error handling. *Target (BILL-D3):* 404 `Bill not found`.
 
 ## Acceptance criteria
 
 1. Given ORDER-BILLED, then 200 with its `billNumber`, `billStatus` 0 and items.
 2. Given ORDER-RUN (not billed) or ORDER-B, then 404 `Bill not found`.
-3. Given `xyz`, then 500 `Server Error`.
+3. *(Target, BILL-D3)* Given `xyz`, then 404 `Bill not found`. (Today: 500 `Server Error`.)
 
 ## Platform notes
 
@@ -42,7 +42,7 @@ Read only.
 
 ### POS app
 
-`cart.api.getBill` (treats 404 as "no bill"); not called by any screen.
+`cart.api.getBill` (treats 404 as "no bill"); used by Bill Payment for a reprint of a saved bill.
 
 ### Super-admin panel
 
@@ -62,4 +62,4 @@ None.
 
 ## Open questions
 
-- None open.
+- None open. Related decision: BILL-D3.

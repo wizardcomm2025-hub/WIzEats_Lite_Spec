@@ -1,6 +1,6 @@
 # Staff management — UI / UX
 
-Screen text exactly as in the code on 2026-11-10.
+Screen text exactly as in the code on 2026-11-10; re-checked in `POS_APP-kot` 2026-11-24.
 
 ## 1. User Management screen
 
@@ -25,7 +25,9 @@ Screen text exactly as in the code on 2026-11-10.
 | Off | `Deactivate staff member?` | `Are you sure you want to deactivate "<name>"?` | `Deactivate` (red) |
 | On | `Activate staff member?` | `Are you sure you want to activate "<name>"?` | `Activate` |
 
-The confirm shows a spinner on the row. Today it always ends with the error toast `The status field is required.` (STAFF-D1). If it worked, the toast would be `Staff member "<name>" deactivated` / `… activated`.
+The confirm shows a spinner on the row, then the toast `Staff member "<name>" deactivated` / `Staff member "<name>" activated`, and the row updates (since 2026-11-17 — STAFF-D1 fixed). If the server refuses, the toast shows its message and the switch stays as it was.
+
+Today the switch can activate a member even when that role is already full (no limit check). *Target (STAFF-D5):* tapping the switch of an inactive member whose role is full shows the toast `You can have 1 active chef and 1 active waiter.` and no dialog.
 
 ## 2. Add Staff sheet
 
@@ -42,7 +44,7 @@ Errors show in red under the field after tapping `Create Staff`.
 | Result | What the owner sees |
 |---|---|
 | Created | Toast `Staff created successfully`; sheet closes; list reloads |
-| Server error | Toast with the server message, e.g. `Failed to create staff member`, `The name field is required.` |
+| Server error | Toast with the server message, e.g. `Failed to create staff member`, `The name field is required.` (target STAFF-D3: `This phone number is already registered.` for a used phone) |
 | No network | Toast `Failed to create staff` |
 
 ## 3. Panel — user management page
@@ -56,3 +58,4 @@ Errors show in red under the field after tapping `Create Staff`.
 | Edit dialog | `Edit User` · `Name` · `Role` (free text) · `Status` (`Active` / `Inactive`) · `Cancel` · `Update` |
 | Saved | Alert `User Updated Successfully`; page reloads |
 | Error / session gone | Nothing |
+| *Target (STAFF-D6)* refused (422 / 404) | Nothing — the script is unchanged |

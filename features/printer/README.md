@@ -32,7 +32,7 @@ The spec records today's behaviour. Decisions PRN-D1 to PRN-D3 keep the current 
 ## Documents
 
 - [data-model.md](./data-model.md) · [api-contract.md](./api-contract.md) · [ui-ux.md](./ui-ux.md) · [test-cases/README.md](./test-cases/README.md) · [developer-guide.html](./developer-guide.html)
-- Implementation: `POS_APP-master/specs/printer/` (created with the first plan)
+- Implementation: `POS_APP-kot/specs/printer/` (created with the first plan)
 
 ## Depends on
 

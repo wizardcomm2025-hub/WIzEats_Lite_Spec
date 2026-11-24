@@ -18,3 +18,4 @@ Approval changes are made by a second tester in the super-admin panel ([03](./03
 | ONB-02-T10 | AC7 | REST-P has a waiter (created by a developer) | Sign in as that waiter. | Same Pending screen as the owner. |
 | ONB-02-T11 | AC8 | T01 | Look for `Contact Support`. | Not shown (no support number configured). |
 | ONB-02-T12 | Alt: legacy owner (ONB-D4) | OWN-LEG | Sign in; tap `Check Approval Status`. | Pending screen; the check always says `Could not reach the server. Check the connection and try again.`, even with a good connection. |
+| ONB-02-T13 | AC10 — *Fails until AUTH-D2 is fixed* | T01 | Ask a super admin to switch REST-P off. App: tap `Check Approval Status`. | Login screen with `Your restaurant is inactive.` in red; nothing of the session remains. (Today: `Checked just now — still under review.`) Restore REST-P afterwards. |

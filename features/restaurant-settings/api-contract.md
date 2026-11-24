@@ -1,6 +1,6 @@
 # Restaurant profile & settings — API contract
 
-Shared shapes: [project-overview.md → API conventions](../../project-overview.md#api-conventions). Facts from the code on 2026-11-06.
+Shared shapes: [project-overview.md → API conventions](../../project-overview.md#api-conventions). Facts from the code on 2026-11-06, re-checked 2026-11-24 (API commit d54d6c8). Rows marked **Target** describe agreed fixes (RST-D2 to RST-D6, X-D1, X-D2) and are not in the code yet.
 
 ## Endpoints
 
@@ -12,7 +12,7 @@ Shared shapes: [project-overview.md → API conventions](../../project-overview.
 | `POST /admin/restaurant/update` (web) | `web` (CSRF), `auth:admin` | none | Panel | [03](./03-edit-in-panel.md) |
 | `POST /admin/restaurant/config/update` (web) | `web` (CSRF), `auth:admin` | none | Panel | [03](./03-edit-in-panel.md) |
 
-No role check on any API endpoint (RST-D3). Common failures for both API endpoints:
+Roles: today none checked (RST-D3). **Target (X-D1):** `showDetails` — owner, waiter, chef; `updateDetails` — owner only, else 403 `{ "status": false, "message": "You do not have permission to perform this action", "data": null }`. Common failures for both API endpoints:
 
 | Situation | HTTP | Body |
 |---|---|---|
@@ -20,7 +20,7 @@ No role check on any API endpoint (RST-D3). Common failures for both API endpoin
 | User has no `restaurantId` | 403 | `Restaurant context missing` (tenant middleware shape — see project overview) |
 | `GET` instead of `POST` | 405 | Method Not Allowed |
 
-A switched-off user, or a Pending / Rejected / switched-off restaurant, still gets 200 (AUTH-D2).
+Today a switched-off user, or a Pending / Rejected / switched-off restaurant, still gets 200 (AUTH-D2). **Target (X-D2):** 403 `Your account is inactive.` / `Your restaurant is not approved.` / `Your restaurant is inactive.`; `showDetails` skips only the approval check.
 
 ---
 
@@ -56,14 +56,18 @@ Every field is optional. Only the fields below are used; anything else is droppe
 | `restaurantName`, `restaurantAddress`, `restaurantOwnerName`, `restaurantGstId`, `restaurantFssaiId`, `companyAddress`, `restaurantContact`, `alternateMobileNo` | `nullable|string` | same name in `restaurants` |
 | `restaurantEmail` | `nullable|email` | `restaurants.restaurantEmail` |
 | `restaurantLogo` | `nullable|url` | `restaurants.restaurantLogo` |
-| `enableRestaurant`, `enableDelivery`, `enableTakeAway`, `enableRoomService`, `enableDiscount`, `showKotInBill` | `nullable|boolean` | same name in `restaurant_configs` (`null` → 500, NOT NULL) |
-| `enableKot` | `nullable|boolean` | **none** — validated, never saved (RST-D2) |
-| `taxPercent` | `nullable` (no type) | `restaurant_configs.taxPercent` decimal(5,2) |
-| `serviceChargePercent` | `nullable|decimal:2` | `restaurant_configs.serviceChargePercent` |
-| `invocePrefix` | `nullable|string` | **none** — misspelt, never saved (RST-D2) |
+| `enableRestaurant`, `enableDelivery`, `enableTakeAway`, `enableRoomService`, `enableDiscount`, `showKotInBill` | `nullable|boolean` (**target** `sometimes|boolean`) | same name in `restaurant_configs` (today `null` → 500, NOT NULL; target 422) |
+| `enableKot` | `nullable|boolean` | today **none** — validated, never saved (RST-D2). **Target:** saved to `enableKOT` |
+| `enableKOT` | today not a rule (dropped). **Target:** `sometimes|boolean` | `restaurant_configs.enableKOT` |
+| `taxPercent` | `nullable` (no type) (**target** `nullable|numeric|min:0|max:100`) | `restaurant_configs.taxPercent` decimal(5,2) |
+| `serviceChargePercent` | `nullable|decimal:2` (**target** `nullable|numeric|min:0|max:100`) | `restaurant_configs.serviceChargePercent` |
+| `invocePrefix` | `nullable|string` | **none** — misspelt, never saved (RST-D2). **Target:** no longer a rule |
+| `invoicePrefix` | today not a rule (dropped). **Target:** `nullable|string|max:255` | `restaurant_configs.invoicePrefix` |
 | `qr`, `kotDisplayName` | `nullable|string` | same name in `restaurant_configs` |
 
-`enableKOT` and `invoicePrefix` (correct spellings) are not in the rules, so they are dropped too.
+Today `enableKOT` and `invoicePrefix` (correct spellings) are not in the rules, so they are dropped too.
+
+**Target text rules (RST-D4):** `restaurantName`, `restaurantOwnerName` `sometimes|filled|string|max:255` (blank or `null` refused); other text fields add `max:255`, except `restaurantAddress` `max:65535`, `restaurantGstId` `max:15`, `kotDisplayName` `max:100`.
 
 ### Responses
 
@@ -82,13 +86,17 @@ Validation messages (Laravel defaults):
 | A switch not boolean | `The <field> field must be true or false.` (e.g. `The enable discount field must be true or false.`) |
 | E-mail | `The restaurant email field must be a valid email address.` |
 | Logo | `The restaurant logo field must be a valid URL.` |
-| Service charge not exactly 2 decimals | `The service charge percent field must have 2 decimal places.` |
+| Service charge not exactly 2 decimals | `The service charge percent field must have 2 decimal places.` (today only; the target drops this rule) |
+| **Target** blank name / owner | `The restaurant name field must have a value.` / `The restaurant owner name field must have a value.` |
+| **Target** too long | `The <field> field must not be greater than <n> characters.` |
+| **Target** tax / service charge | `The tax percent field must be a number.` · `… must be at least 0.` · `… must not be greater than 100.` (same with `service charge percent`) |
+| **Target** `null` switch | `The <field> field must be true or false.` |
 
 Booleans accept `true`, `false`, `1`, `0`, `"1"`, `"0"`.
 
 ### Side effects
 
-Order channel updates are attempted and match nothing (RST-D1). No e-mail is sent.
+When `enableTakeAway`, `enableDelivery` or `enableRoomService` is sent, the channel with `channelCode` `TAKEAWAY`, `DELIVERY` or `ROOM_SERVICE` gets `isActive` = that value, in the same transaction (since 2026-11-16, RST-D1 fixed). `orders/getOrderChannels` then lists only active channels. No e-mail is sent.
 
 ### What the app sends
 
@@ -104,17 +112,17 @@ Order channel updates are attempted and match nothing (RST-D1). No e-mail is sen
 }
 ```
 
-The values are the form's. `enableKot` is the held KOT setting, or `false` when the record has none. Empty optional texts go as `""` or `null`.
+The values are the form's. `enableKot` is the held KOT setting, or `false` when the record has none. Empty optional texts go as `""` or `null`. **Target (RST-D2):** the same body **without** `serviceChargePercent` and `companyAddress`.
 
 ---
 
 ## Panel routes (web)
 
-All three run behind the `web` group and `auth:admin`. The two POSTs need the session's CSRF token (the page sends it as the `X-CSRF-TOKEN` header). None validates input.
+All three run behind the `web` group and `auth:admin`. The two POSTs need the session's CSRF token (the page sends it as the `X-CSRF-TOKEN` header). Today none validates input. **Target (RST-D4):** validated; failures answer 422 JSON `{ "message": "<first error>", "errors": { … } }` (Laravel default; the page's script still shows nothing).
 
 ### `GET /admin/restaurant-management/{restaurantId}`
 
-`{restaurantId}` is 32-char hex or a dashed UUID. The response is the HTML page ([ui-ux.md §3](./ui-ux.md#3-panel--restaurant-management-page)). An unknown ID gives a 500 error page (the view reads properties of a missing row).
+`{restaurantId}` is 32-char hex or a dashed UUID. The response is the HTML page ([ui-ux.md §3](./ui-ux.md#3-panel--restaurant-management-page)). An unknown ID gives a 500 error page (the view reads properties of a missing row). **Target (RST-D4 / X-D4):** 404.
 
 ### `POST /admin/restaurant/update`
 
@@ -123,9 +131,10 @@ JSON body: `restaurantId`, `restaurantName`, `restaurantContact`, `restaurantOwn
 | Situation | Result |
 |---|---|
 | Any values | All six columns set to what was sent; a field left out is set to `NULL`. `updated_at` = now. `{ "success": true }` |
-| Unknown `restaurantId` | Nothing changes; still `{ "success": true }` |
-| `restaurantId` missing | 500 (type error) |
-| Text too long for the column | 500, nothing saved |
+| Unknown `restaurantId` | Nothing changes; still `{ "success": true }`. **Target:** 404 |
+| `restaurantId` missing | 500 (type error). **Target:** 422 `The restaurant id field is required.` |
+| Text too long for the column | 500, nothing saved. **Target:** 422 |
+| **Target (RST-D4)** name or owner name empty | 422 `The restaurant name field is required.` / `The restaurant owner name field is required.`; nothing saved (today: saved as `NULL`) |
 | Other fields (`isApproved`, `status`, `restaurantEmail`, …) | Ignored |
 
 ### `POST /admin/restaurant/config/update`
@@ -134,12 +143,12 @@ JSON body: `restaurantId`, `enableRestaurant`, `enableDelivery`, `enableKOT`, `e
 
 | Situation | Result |
 |---|---|
-| Valid values | Config row updated with all seven values; `{ "success": true }` |
-| A switch missing / `null` | 500 (NOT NULL), nothing saved |
-| Tax / service charge not a number or ≥ 1000 | 500, nothing saved |
+| Valid values | Config row updated with all seven values; `{ "success": true }`. **Target (RST-D5):** the `DELIVERY` and `ROOM_SERVICE` channels' `isActive` set to `enableDelivery` / `enableRoomService` in the same transaction (today: channels untouched) |
+| A switch missing / `null` | 500 (NOT NULL), nothing saved. **Target:** 422 `The <field> field is required.` |
+| Tax / service charge not a number or ≥ 1000 | 500, nothing saved. **Target:** 422 (numeric 0–100) |
 | Tax / service charge empty | Stored `NULL` |
-| Negative tax / service charge | Stored (RST-D4) |
-| `restaurantId` unknown, or the restaurant has no config row | Insert attempted without `configId` → 500 |
+| Negative tax / service charge | Stored (RST-D4). **Target:** 422 `… must be at least 0.` |
+| `restaurantId` unknown, or the restaurant has no config row | Insert attempted without `configId` → 500. **Target:** unknown → 404; no config row → one is created, 200 |
 | `enableTakeAway`, `enableDiscount`, `qr`, … | Ignored |
 
 Common failures for both POSTs:

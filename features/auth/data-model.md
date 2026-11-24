@@ -1,6 +1,6 @@
 # Sign-in & PIN — data model
 
-Source: `laravel-pos-api-dev_guid/db_script/tables/tables.sql`, `database/migrations/2026_10_06_000000_add_pin_login_columns.php`, `app/Models/User.php`, `app/Models/PersonalAccessToken.php`. AUTH adds no tables or columns.
+Source: `db_script/pos_stage.sql`, `database/migrations/2026_10_06_000000_add_pin_login_columns.php`, `app/Models/User.php`, `app/Models/PersonalAccessToken.php`. AUTH adds no tables or columns.
 
 ## Tables
 
@@ -65,7 +65,7 @@ Users are never deleted by any API endpoint; they are switched off (`status = 0`
 
 ## Migrations and scripts
 
-None for AUTH. Note the schema drift listed in [project-overview.md → Known gaps](../../project-overview.md#known-gaps-as-of-2026-11-05).
+None for AUTH. Note the schema drift listed in [project-overview.md → Known gaps and targets](../../project-overview.md#known-gaps-and-targets) (X-D7).
 
 ## Indexes that matter
 

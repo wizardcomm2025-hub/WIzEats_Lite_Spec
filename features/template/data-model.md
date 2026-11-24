@@ -1,6 +1,6 @@
 # {{FEATURE_NAME}} — data model
 
-Source of truth for columns: `laravel-pos-api-dev_guid/db_script/tables/tables.sql` and `database/migrations/`. This file must match them.
+Source of truth for columns: `db_script/pos_stage.sql` and `database/migrations/`. This file must match them.
 
 ## Tables
 

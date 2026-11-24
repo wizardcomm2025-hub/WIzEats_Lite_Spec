@@ -1,6 +1,6 @@
 # Kitchen (chef) — UI / UX
 
-Screen text exactly as in the code on 2026-11-11. Only the parts testers check are listed.
+Screen text exactly as in the code on 2026-11-11; re-checked in `POS_APP-kot` 2026-11-24 (unchanged). Only the parts testers check are listed.
 
 ## 1. Chef shell
 
@@ -20,12 +20,12 @@ Screen text exactly as in the code on 2026-11-11. Only the parts testers check a
 | Empty / failed list | `No Orders Here` · `No orders in this section. Pull down to refresh.` |
 | Refresh | Pull down; also automatic every 15 s while open and in the foreground |
 
-### KOT card (never shown today — KITCH-D1)
+### KOT card (never shown today — KITCH-D1; shown once it is fixed)
 
 | Part | Content |
 |---|---|
-| Title | `KOT #<kotId>` · status pill (`Pending` blue, `Preparing` amber, `Rejected` red, `Completed` accent, `Ready` green) · `Just now` / `<n>m ago` / `<h>h <m>m ago` |
-| Place | `Zone : <zone>  <table>`, or `Room: <room>`, or `N/A` |
+| Title | `KOT #<kotId>` today (target `KOT #<kotNumber>` — KITCH-D1) · status pill (`Pending` blue, `Preparing` amber, `Rejected` red, `Completed` accent, `Ready` green) · `Just now` / `<n>m ago` / `<h>h <m>m ago` |
+| Place | `Zone : <zone>  <table>`, or `Room: <room>`, or `N/A` (Takeaway / Delivery) |
 | Items | quantity bubble + item name, one row per line |
 | Note | `📝 <note>` when there is one |
 | Pending | `Reject` (red) and `Accept` |
@@ -40,7 +40,7 @@ Screen text exactly as in the code on 2026-11-11. Only the parts testers check a
 | Part | Content |
 |---|---|
 | Header | `Hello, <name>!` · `Here's your performance summary` · `Today's Overview` · `CHEF-<userId hex>` |
-| Cards (role exactly `Chef`) | `Received` · `Accepted` · `Rejected` |
-| Role `chef` / `CHEF` | Waiter dashboard: `Total Orders`; header `WAIT-<userId>` (KITCH-D3) |
+| Cards (role exactly `Chef`; target any case) | `Received` · `Accepted` · `Rejected` |
+| Role `chef` / `CHEF` | Today the waiter dashboard: `Total Orders`; header `WAIT-<userId>` (KITCH-D3). Target: the chef cards |
 | Loading | `Loading your dashboard...` |
 | Refresh | Pull down |

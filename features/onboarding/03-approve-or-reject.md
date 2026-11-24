@@ -30,10 +30,10 @@ A super admin reviews newly onboarded restaurants in the web panel and accepts o
 ## Alternative flows
 
 - **No confirmation.** One click decides.
-- **Changing a decision.** Not offered in the panel. A crafted request can set any value, including back to Pending (ONB-D2).
-- **Any value.** A crafted request with `isApproved = 7` is saved; the panel then shows no badge and no buttons; the app treats it as Rejected at sign-in (ONB-D2).
-- **Missing or non-numeric value.** Server error page; nothing changes.
-- **Unknown restaurant.** Nothing changes; the server still answers as if it worked (redirect back).
+- **Changing a decision.** Not offered in the panel. A direct request can set 0, 1 or 2, including back to Pending — kept on purpose (ONB-D2); with the X-D2 target the restaurant's users are then held back again at their next call.
+- **Any value.** Today a crafted request with `isApproved = 7` is saved; the panel then shows no badge and no buttons; the app treats it as Rejected at sign-in. *Target (ONB-D2):* refused with validation errors; nothing changes.
+- **Missing or non-numeric value.** Today: server error page; nothing changes. *Target (ONB-D2):* validation errors, no 500.
+- **Unknown restaurant.** Today nothing changes but the server answers as if it worked (redirect back). *Target (ONB-D2 / X-D4):* 404.
 - **E-mail fails.** The decision is saved; the failure is only logged.
 - **Same decision posted twice.** Saved again; no second e-mail.
 - **Session expired.** Redirect to the panel login; nothing changes.
@@ -49,12 +49,14 @@ A super admin reviews newly onboarded restaurants in the web panel and accepts o
 6. Given a restaurant whose onboarding isn't done, then it is not listed.
 7. Given the mail server is down, when `Accept` is clicked, then the decision is still saved.
 8. Given no panel session, when the endpoint is called, then nothing changes.
+9. *(Target, ONB-D2)* Given `isApproved` other than 0, 1 or 2 (or missing), then nothing changes, no e-mail is sent and no 500 occurs.
+10. *(Target, ONB-D2)* Given an unknown restaurant id, then 404 and nothing changes.
 
 ## Platform notes
 
 ### POS API
 
-Not an `/api` endpoint — a web route in `routes/web.php` behind the `web` group and `auth:admin`. No validation of `isApproved` (ONB-D2). See [api-contract.md](./api-contract.md#post-adminupdate-statusrestaurantid-web).
+Not an `/api` endpoint — a web route in `routes/web.php` behind the `web` group and `auth:admin`. Today no validation of `isApproved`; target `required|in:0,1,2` and 404 for an unknown id (ONB-D2). See [api-contract.md](./api-contract.md#post-adminupdate-statusrestaurantid-web).
 
 ### Data — MySQL
 
@@ -83,4 +85,4 @@ Mail transport in `.env`. Page size (10) is hard-coded.
 
 ## Open questions
 
-- None open. Related decision: ONB-D2.
+- None open. Related decision: ONB-D2 (To fix).
