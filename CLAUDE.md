@@ -124,5 +124,6 @@ State: what is changing and why; which layers are affected; **breaking** or **ad
 - For data-model facts, read `db_script/pos_stage.sql`, `database/migrations/` and `app/Models/`. If a table isn't there, ask the user for it.
 - For real API behaviour (status codes, messages), read `routes/api.php`, the controller, its FormRequest in `app/Http/Requests/`, the service in `app/Services/`, `app/Http/Middleware/RestaurantTenantMiddleware.php` and `bootstrap/app.php`. Never invent a response a test expects; raise an open question instead.
 - For app behaviour (screens, messages, role routing), read `POS_APP-kot/src/app/` and its `CLAUDE.md`.
-- Preserve the history of open questions.
+- Preserve the history of open questions, and of decisions (old texts go under "Original decision texts (history)").
+- Specs record **today's code plus targets** (since 2026-11-24): every bug is a `<CODE>-Dn` decision with a status (*To fix* / *Accepted* / *Fixed in code*), and tests assert the target with `Fails until <ID> is fixed`. Never "correct" a spec to today's behaviour when its decision says *To fix*; ask instead. See `conventions.md` → Decision status and `project-overview.md` → Bug-fix index.
 - This folder is a git repository (branch `main`, remote `origin` on GitHub). Do not create branches, commits or pushes here unless the user asks.

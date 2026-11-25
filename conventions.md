@@ -140,7 +140,7 @@ The spec describes **today's code** and, where today's code is wrong, the **targ
 |---|---|---|
 | **To fix** | Today's behaviour is wrong. The entry states *Today:* (what the code does) and *Target:* (what it must do, with exact HTTP status and message). | Test cases assert the **target**. The case carries the tag `Fails until <CODE>-Dn is fixed`. |
 | **Accepted** | Today's behaviour is a known risk that stays. | Test cases assert today's behaviour and cite the decision, e.g. `(accepted AUTH-D7)`. |
-| **Fixed in code YYYY-MM-DD** | The code now does the target. The entry keeps its history: what it was, and what changed. | Test cases assert the current behaviour. No tag. |
+| **Fixed in code YYYY-MM-DD** | The code now does the target. The entry keeps its history: what it was, and what changed. Variants in use: *Fixed in the app* (the fault was only in `POS_APP-kot`; no date known), *partly fixed* (the fixed part is stated, the rest stays *To fix*). | Test cases assert the current behaviour. No tag. |
 
 Format in the README:
 
@@ -150,7 +150,7 @@ Format in the README:
 - **RST-D1 — Fixed in code 2026-11-16.** Was: … Now: …
 ```
 
-When a "To fix" decision is fixed, change its status to *Fixed in code*, and remove the `Fails until` tags from its tests in the same change. Cross-cutting decisions (role checks, token state, error hygiene) live in [`project-overview.md` → Known gaps](./project-overview.md#known-gaps-and-targets) as `X-Dn` and are cited by feature decisions.
+When a "To fix" decision is fixed, change its status to *Fixed in code*, remove the `Fails until` tags (and the "(today: …)" notes) from its tests, and update the [bug-fix index](./project-overview.md#bug-fix-index-all-features-2026-11-24), all in the same change. A *To fix* decision may also be re-decided as *Accepted* (or the reverse) — keep the earlier text under "Original decision texts (history)". Cross-cutting decisions (role checks, token state, error hygiene) live in [`project-overview.md` → Known gaps](./project-overview.md#known-gaps-and-targets) as `X-Dn` and are cited by feature decisions.
 
 ### Feature `ui-ux.md`
 

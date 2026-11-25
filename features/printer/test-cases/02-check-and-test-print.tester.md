@@ -1,4 +1,4 @@
-# 02 — Check the connection and test print — tester cases
+# 02 — Check the printer and test print — tester cases
 
 Use case: [02-check-and-test-print.md](../02-check-and-test-print.md). Screen text: [ui-ux.md](../ui-ux.md). Fixtures: [README.md](./README.md#fixtures) (CLEAN before each case).
 
@@ -6,10 +6,14 @@ Use case: [02-check-and-test-print.md](../02-check-and-test-print.md). Screen te
 |---|---|---|---|
 | PRN-02-T01 | AC1 | Type PRN-1's IP. Tap `Check connection`. | The button spins briefly; chip `Online` (green). Nothing saved: subtitle still `Not saved — …`. |
 | PRN-02-T02 | AC2 | Type UNUSED-IP. Tap `Check connection`. | All buttons disabled while it runs; after about 15 s the chip reads `Not reachable` (red). No alert. |
-| PRN-02-T03 | AC5 (PRN-D1) | Start DECOY. Type DECOY's IP. Tap `Check connection`. | Chip `Online`, although DECOY is not a printer. |
-| PRN-02-T04 | AC3 | Type PRN-1's IP (not saved). Tap `Test print`. | PRN-1 prints and cuts a slip: `WhizEats Lite`, `Printer test page`, PRN-1's IP, today's date and time, `If you can read this, Wi-Fi printing works.` Alert `Printer saved` / `Test page sent. Bills and KOTs will now print to this printer.`; subtitle `Printing to <PRN-1 ip>`; chip `Online`. |
+| PRN-02-T03 | AC5 (accepted part of PRN-D1) | Start DECOY. Type DECOY's IP. Tap `Check connection`. | Chip `Online`, although DECOY is not a printer. |
+| PRN-02-T04 | AC3, AC6 — *Fails until PRN-D4 is fixed* | Type PRN-1's IP (not saved). Tap `Test print`. | PRN-1 prints and cuts a slip: `WhizEats Lite`, `Printer test page`, PRN-1's IP, today's date and time, `If you can read this, Wi-Fi printing works.` — and nothing after it. Alert `Printer saved` / `Test page sent. Bills and KOTs will now print to this printer.`; subtitle `Printing to <PRN-1 ip>`; chip `Online`. (Today: a last line `false` is printed.) |
 | PRN-02-T05 | Main flow 3 | After T04, tap `Test print` again. | A second test slip prints; no alert; chip `Online`. |
-| PRN-02-T06 | AC4 | Take the paper out of PRN-1. Type its IP; tap `Test print`. | Nothing prints; alert `Test print failed` / `The printer is out of paper.`; chip `Not reachable`. |
+| PRN-02-T06 | AC4 | Take the paper out of PRN-1. Type its IP; tap `Test print`. | Nothing prints; alert `Test print failed` / `The printer is out of paper.`; chip `Not reachable` (accepted). |
 | PRN-02-T07 | Alt: cover open | Paper in, cover open. `Test print` to PRN-1. | Alert `Test print failed` / `The printer cover is open.`; chip `Not reachable`. |
 | PRN-02-T08 | Alt: unreachable | Type UNUSED-IP. Tap `Test print`. | After about 15 s: alert `Test print failed` / `Printer not reachable at <UNUSED-IP>:9100.`; chip `Not reachable`; nothing saved. |
 | PRN-02-T09 | Alt | Do T01 so the chip shows `Online`, then change one digit of the IP. Then tap `Check connection` on UNUSED-IP and, while it runs, try the other buttons. | The chip disappears as soon as the IP changes. While the check runs, `Search printers`, `Test print` and `Save printer` don't respond. |
+| PRN-02-T10 | AC7 (Sunmi check) | On SUNMI-T, built-in tab: tap `Check printer` (a) as is (b) with the cover open (c) with no paper. | Chip (a) `Ready` (green) (b) `Cover open` (red) (c) `Out of paper` (red). Nothing saved. |
+| PRN-02-T11 | Sunmi test — *Fails until PRN-D4 is fixed* | On SUNMI-T (nothing saved), built-in tab: tap `Test print`. Then open the cover and tap it again. | First: the built-in printer prints `WhizEats Lite`, `Printer test page`, `Built-in printer`, date and time, `If you can read this, built-in printing works.` and nothing after it, then cuts; chip `Ready`; alert `Printer saved` / `Test page sent. Bills and KOTs will now print on the built-in printer.` Second: alert `Test print failed` / `The printer cover is open.`; chip `Not available`. (Today: a last line `true` is printed.) |
+| PRN-02-T12 | USB check, permission | On USB-T, USB tab: tap `Check printer`; deny Android's USB permission dialog. Tap `Check printer` again; allow it. | First: Android's permission dialog appears; after denying, chip `Permission needed`. Second: the dialog again; after allowing, chip `Ready`. Further checks show `Ready` without a dialog. |
+| PRN-02-T13 | USB test — *Fails until PRN-D4 is fixed* | On USB-T after T12: tap `Test print`. Then take the paper out and tap it again. | First: the USB printer prints the test page with `USB printer` and `If you can read this, USB printing works.` and nothing after it, then cuts; alert `Printer saved` / `Test page sent. Bills and KOTs will now print on the USB printer.` Second: no alert, chip `Ready` — the USB printer has no paper check (accepted). (Today: a last line `true` is printed.) |

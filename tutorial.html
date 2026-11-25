@@ -280,6 +280,7 @@
           <li><code>data-model.md</code> and <code>api-contract.md</code> (the contract; <code>api/openapi.yaml</code> is only a generated reference once it exists)</li>
         </ol>
         <p style="margin-top:10px">That's enough to ship one vertical slice. You shouldn't need to read every other use-case in the feature.</p>
+        <p style="margin-top:10px"><strong>Fixing a bug?</strong> Pick a <em>To fix</em> decision from the bug-fix index in <code>project-overview.md</code>, read its <em>Target</em> in the feature README, and make the tests tagged <code>Fails until &lt;ID&gt; is fixed</code> pass. Then flip the decision to <em>Fixed in code</em> and drop the tags in the same change. Leave <em>Accepted</em> decisions alone.</p>
       </section>
 
     </div>
@@ -298,6 +299,8 @@
         <tr><td>Look up a term</td><td>project-overview.md → Glossary</td></tr>
         <tr><td>Spec-authoring rules and section template</td><td>conventions.md</td></tr>
         <tr><td>Record an architectural decision</td><td>adr/NNNN-&lt;slug&gt;.md</td></tr>
+        <tr><td>Find bugs to fix</td><td>project-overview.md → Bug-fix index, then the feature README → Decisions</td></tr>
+        <tr><td>See which tests fail today and why</td><td>test cases tagged "Fails until &lt;ID&gt; is fixed" (today's result in brackets)</td></tr>
       </tbody>
     </table>
 

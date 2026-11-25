@@ -48,7 +48,7 @@
     </header>
 
     <h2>v1 scope</h2>
-    <p>Five use cases. The panel's settings, users, zones and tables, menu and approval pages belong to RST, STAFF, TBL, MENU and ONB. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour</strong>. ADM-D1 to D3 keep the current rules as accepted risks.</p>
+    <p>Five use cases. The panel's settings, users, zones and tables, menu and approval pages belong to RST, STAFF, TBL, MENU and ONB. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour plus targets</strong> (re-synced 2026-11-24; no panel code changed). ADM-D2 is <em>To fix</em> (aligned with RPT); ADM-D1 and ADM-D3 stay accepted.</p>
 
     <h2>How it works end-to-end</h2>
     <p>A JSON sign-in (<code>POST /admin/login</code>) creates an <code>admin</code>-guard session. <code>/admin</code> lists onboarded restaurants. <code>/admin/analytics|orders|items/{hexId}</code> run <code>DB::table</code> queries on the binary ID and render Blade with Chart.js. <code>/set-locale/{locale}</code> sets the session locale for <code>SetLocale</code>.</p>
@@ -56,7 +56,7 @@
     <h2>What matters where you sit</h2>
     <div class="card"><h3>Super-admin panel</h3><ul>
       <li>No roles; status is checked only at sign-in; the remember cookie lasts about 400 days; <code>/set-locale</code> redirects to any Referer (ADM-D1).</li>
-      <li>Revenue = paid (<code>orderStatus</code> 2) only; orders, items and channels = all; UTC days; "Last n days" = n + 1 days; an unknown filter = all time (ADM-D2).</li>
+      <li>Today revenue = paid (<code>orderStatus</code> 2) only; orders, items and channels = all; UTC days; "Last n days" = n + 1 days; an unknown filter = all time (ADM-D2 — to fix).</li>
       <li><code>itemhistory</code> passes <code>sort_order</code> straight to <code>orderBy</code>: an invalid value gives a 500 (ADM-D2).</li>
       <li><code>/dashboard</code> is static demo HTML; several buttons are dead; an unknown ID gives zeros, not a 404 (ADM-D3).</li>
     </ul></div>
@@ -69,8 +69,12 @@
 
     <div class="card warn"><h3>Accepted risks (do not "fix" without a new decision)</h3><ul>
       <li>ADM-D1: SQL-only accounts, sessions outlive deactivation, about 400-day remember cookie, no roles, IP-only throttle, Referer redirect.</li>
-      <li>ADM-D2: mixed figure rules, UTC periods, static subtitles, today-only history pages, random default sort, 500 on a bad sort.</li>
+      <li>ADM-D2 (part): Item History merges items with the same name.</li>
       <li>ADM-D3: fake <code>/dashboard</code>, dead buttons, page-only search, numbering per page, zeros for unknown IDs, untranslated tables.</li>
+    </ul></div>
+
+    <div class="card"><h3>To fix (work list)</h3><ul>
+      <li>ADM-D2: paid orders only for every Overview figure, chart, channel split and Popular Items (top 10, <code>01</code>–<code>10</code>); IST days, true N-day periods, unknown filter = Today; subtitles follow the period (all locales); <code>₹</code> on Total Revenue; history pages follow <code>?filter=</code>, page 25, IST times, <code>Order No.</code>, paid-only Item History sorted by quantity, 422 on a bad sort. Tests: 03-T01–T05, T08, 03-D01, D02, D04, D06, 04-T01–T05, T07, 04-D01–D03, D05.</li>
     </ul></div>
 
     <div class="meta">

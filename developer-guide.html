@@ -258,8 +258,16 @@
       This folder is the <strong>single source of truth for what WhizEats POS Lite does</strong> across the
       Laravel POS API, the MySQL database, the React Native POS app and the super-admin web panel. There is no code here — only
       specifications, API contracts, data models, UI/UX notes, test cases and architectural decisions. If you're implementing, you're
-      working in <code>laravel-pos-api/api</code> or <code>POS_APP-kot</code>, both reading these specs at
-      <code>../App-Specs/</code>. Plans, task status and test results live in <code>laravel-pos-api/api/specs/&lt;feature&gt;/</code>.
+      working in <code>laravel-pos-api/api</code> (<code>C:\xampp82\htdocs\laravel-pos-api\api</code>) or <code>POS_APP-kot</code>, both reading these specs at
+      <code>D:\whizeats_Lite_Spec\spec</code>. Plans, task status and test results live in <code>laravel-pos-api/api/specs/&lt;feature&gt;/</code>.
+    </p>
+    <p>
+      <strong>Today plus target (since 2026-11-24).</strong> The specs describe what the code does today and, for every known bug, the
+      <em>target</em> you must build. Each bug is a decision <code>&lt;CODE&gt;-Dn</code> in the feature README with a status:
+      <em>To fix</em> (tests assert the target and carry <code>Fails until &lt;ID&gt; is fixed</code>), <em>Accepted</em> (a known risk that stays —
+      don't "fix" it) or <em>Fixed in code</em>. The work list across all features is the
+      <a href="./project-overview.md#bug-fix-index-all-features-2026-11-24">bug-fix index</a> in <code>project-overview.md</code>;
+      cross-cutting items are <code>X-Dn</code> under Known gaps and targets.
     </p>
 
     <h2>The mental model</h2>

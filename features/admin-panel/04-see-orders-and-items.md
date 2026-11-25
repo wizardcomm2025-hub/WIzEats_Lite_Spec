@@ -1,8 +1,8 @@
-# 04 — See today's orders and items
+# 04 — See orders and items
 
 ## Summary
 
-From a restaurant's sidebar, `Order History` lists today's orders and `Item History` lists today's sales per item name. Item History can be sorted by quantity or amount. Both pages show today (UTC) only and ignore the header's period (ADM-D2).
+From a restaurant's sidebar, `Order History` lists the period's orders and `Item History` the period's sales per item name. Item History can be sorted by quantity or amount. **Today both pages show today (UTC) only, unpaged, and ignore the header's period (ADM-D2 — To fix: follow the period in IST, paged, paid-only item sales).**
 
 ## Prerequisites
 
@@ -15,23 +15,24 @@ From a restaurant's sidebar, `Order History` lists today's orders and `Item Hist
 ## Main flow
 
 1. **Order History:** the page title stays `Dashboard Overview` (ADM-D3). The table has these columns, always in English:
+   - *target:* `Order No.`: `orders.orderNumber` (e.g. `CODE-A/12`);
    - `Order ID`: upper-case hex;
    - `Channel`: the channel name;
    - `Total Amount`: `₹ <grandTotal>`, as stored, e.g. `₹ 525.00`;
    - `Payment Status`: `Paid` (green) or `Unpaid` (red);
-   - `Date & Time`: `d M Y, h:i A` in UTC.
+   - `Date & Time`: `d M Y, h:i A` — *target* IST; today UTC.
 
-   It lists every order created today (UTC), newest first, with no paging.
-2. **Item History:** columns `SL No`, `Item Name`, `Quantity ↕️`, `Amount ↕️`. There is one row per item name for today's lines, with summed quantity and `₹ <sum>`.
+   *Target:* every order (paid or not) of the header's period (IST days), newest first, 25 a page. *Today:* every order created today (UTC), with no paging.
+2. **Item History:** columns `SL No`, `Item Name`, `Quantity`, `Amount` with sort arrows. One row per item name, with summed quantity and `₹ <sum>`. *Target:* lines of paid orders in the period, sorted by quantity, highest first (`⬇️` on `Quantity`), 25 a page. *Today:* every line created today (UTC), arrows `↕️`, effectively random order.
 3. Clicking the arrow next to `Quantity` or `Amount` sorts by it. The arrow then shows ⬆️ or ⬇️, and the next click reverses it. The first click sorts ascending when the current order is descending (the default).
 
 ## Alternative flows
 
-- **Default Item History order:** by the largest line ID, a random GUID, so effectively random (ADM-D2).
-- **`?sort_order=` other than `asc` / `desc`:** a 500 error page (ADM-D2).
-- **`?sort_by=menuItemName`:** sorts by name; there is no link for it in the UI. An unknown `sort_by` uses the default.
-- **Header period dropdown:** opens the **Overview** with that period (ADM-D2).
-- **Orders before today (UTC)**, including those made before 05:30 IST today, are not shown.
+- **`?sort_order=` other than `asc` / `desc`:** *target* 422 page `The selected sort order is invalid.`; today a 500 error page (ADM-D2).
+- **`?sort_by=menuItemName`:** sorts by name; there is no link for it in the UI. An unknown `sort_by`: *target* 422; today the default order.
+- **Header period dropdown:** *target* filters this page (`?filter=`); today it opens the **Overview** with that period (ADM-D2).
+- **Orders made 00:00–05:29 IST today:** *target* listed under `Today`; today they count as yesterday (UTC) and are not shown.
+- **More than 25 rows:** *target* `Showing 1 to 25 of <n> results` and pages; today all on one page.
 - **Two different items with the same name:** one row (ADM-D2).
 - **Unknown restaurant ID:** empty tables (ADM-D3).
 
@@ -40,10 +41,11 @@ From a restaurant's sidebar, `Order History` lists today's orders and `Item Hist
 1. Given ORDER-LIVE and ORDER-PAID today, then Order History lists both, newest first:
    - ORDER-PAID: `Takeaway`, `₹ 525.00`, `Paid`;
    - ORDER-LIVE: `Unpaid`;
-   - each with a UTC time.
-2. Given those orders, then Item History shows one row: `Paneer Tikka`, `4`, `₹ 1000.00`.
+   - *(target)* each with its `Order No.` and an IST time (today: a UTC time, no number).
+2. *(Target, ADM-D2)* Given those orders, then Item History shows one row: `Paneer Tikka`, `2`, `₹ 500.00`. (Today: `4`, `₹ 1000.00`.)
 3. Given ITEM-1 × 1 and ITEM-2 × 3 today, when `Quantity` is clicked, then `Paneer Tikka` comes first (ascending) with ⬆️, and a second click puts `Chicken 65` first with ⬇️.
-4. Given ORDER-OLD (yesterday), then it appears on neither page.
+4. Given ORDER-OLD (yesterday), then it appears on neither page under `Today`; *(target)* under `Yesterday` it appears on Order History.
+5. *(Target)* Given 30 orders today, then Order History shows 25 and a second page with 5.
 
 ## Platform notes
 
@@ -69,4 +71,4 @@ None.
 
 ## Open questions
 
-- None open.
+- None open. Related decisions: ADM-D2, ADM-D3.

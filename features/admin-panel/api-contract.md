@@ -1,6 +1,6 @@
 # Super-admin panel — HTTP contract
 
-Web routes (`routes/web.php`), `web` middleware group: session, CSRF, `SetLocale`. Facts from the code on 2026-11-12.
+Web routes (`routes/web.php`), `web` middleware group: session, CSRF, `SetLocale`. Facts from the code on 2026-11-12, re-checked 2026-11-24 (unchanged). *Target* marks ADM-D2 changes.
 
 Common rules:
 - a guest on any `auth:admin` route gets 302 → `/`;
@@ -28,9 +28,9 @@ Common rules:
 
 | Route | Query | Response |
 |---|---|---|
-| `GET /admin/analytics/{restaurantId}` | `filter` = `today` / `yesterday` / `7days` / `15days` / `30days`; other values = all time (ADM-D2) | 200 HTML; an unknown ID → 200 with zeros (ADM-D3) |
-| `GET /admin/orders/{restaurantId}` | — | 200 HTML |
-| `GET /admin/items/{restaurantId}` | `sort_by` = `menuItemName` / `quantity` / `total` / `last_id` (others → `last_id`); `sort_order` = `asc` / `desc` | 200 HTML; any other `sort_order` → 500 (`InvalidArgumentException: Order direction must be "asc" or "desc".`) |
+| `GET /admin/analytics/{restaurantId}` | `filter` = `today` / `yesterday` / `7days` / `15days` / `30days`; today other values = all time; *target:* missing / empty / unknown = `today` | 200 HTML; an unknown ID → 200 with zeros (ADM-D3) |
+| `GET /admin/orders/{restaurantId}` | today none; *target:* `filter` as above, `page` (25 a page) | 200 HTML |
+| `GET /admin/items/{restaurantId}` | `sort_by` = `menuItemName` / `quantity` / `total` / `last_id` (others → `last_id`); `sort_order` = `asc` / `desc`. *Target:* `sort_by` `menuItemName` / `quantity` / `total` (default `quantity`), `sort_order` `asc` / `desc` case-insensitive (default `desc`); `filter`, `page` as above | 200 HTML; today any other `sort_order` → 500 (`InvalidArgumentException: Order direction must be "asc" or "desc".`). *Target:* any other `sort_by` / `sort_order` → 422 page `The selected sort order is invalid.` (`… sort by …`) |
 
 All three require `auth:admin`.
 

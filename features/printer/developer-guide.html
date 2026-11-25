@@ -44,34 +44,44 @@
     <header class="hero">
       <div class="eyebrow">Feature developer guide · PRN</div>
       <h1>Printer settings &amp; printing</h1>
-      <p class="lede">One Wi-Fi receipt printer per device: find it, save it, test it, and the route every bill and KOT print takes to reach it.</p>
+      <p class="lede">One receipt printer per device — Wi-Fi, Sunmi built-in or USB: find it, save it, test it, and the route every bill and KOT print takes to reach it.</p>
     </header>
 
     <h2>v1 scope</h2>
-    <p>Three use cases: find and save a printer, check and test print, print a bill or KOT. Device only, so there are tester cases only. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour</strong>. PRN-D1 to D3 keep the current rules as accepted risks.</p>
+    <p>Three use cases: find and save a printer, check and test print, print a bill or KOT. Device only, so there are tester cases only. See the <a href="./README.md">README</a>. The spec records <strong>today's behaviour plus targets</strong> (re-synced 2026-11-24): Sunmi and USB printers are new and spec'd as they are; PRN-D1, PRN-D2 and PRN-D4 are <em>To fix</em>; PRN-D3 stays accepted.</p>
 
     <h2>How it works end-to-end</h2>
-    <p>The Printer screen stores <code>{ ip, port }</code> in AsyncStorage (<code>WIFI_PRINTER</code>). Every print button builds an 80&nbsp;mm PDF and calls <code>printPdf()</code>. With a saved printer on Android, <code>WifiPrinter.printPdf</code> renders it to 576-dot images and prints them silently. On failure, the app scans the network once and either switches printer silently, or alerts and opens Android's print screen (<code>PdfPrint</code>).</p>
+    <p>The Printer screen stores <code>{ type: "wifi", ip, port }</code>, <code>{ type: "sunmi" }</code> or <code>{ type: "usb", deviceId? }</code> in AsyncStorage (<code>WIFI_PRINTER</code>; old values without <code>type</code> are Wi-Fi). Every print button builds an 80&nbsp;mm PDF and calls <code>printPdf()</code>. On Android with a saved printer it goes to <code>WifiPrinter</code>, <code>SunmiPrinter</code> or <code>UsbPrinter</code>, which render it to 576-dot images and print silently. On failure it alerts and opens Android's print screen (<code>PdfPrint</code>); Wi-Fi first scans the network.</p>
 
     <h2>What matters where you sit</h2>
     <div class="card"><h3>POS app</h3><ul>
-      <li>A single address found after a failure is printed to and saved with no prompt (PRN-D1).</li>
-      <li>The port isn't validated: <code>Number(port) || 9100</code>, with no upper bound (PRN-D2).</li>
-      <li>Bill print errors use the title <code>Share Failed</code>; the <code>Invalid IP</code> alert can't be reached (PRN-D2).</li>
-      <li>The setting is per device and survives sign-out (PRN-D3).</li>
+      <li>The screen detects a built-in printer on open (Sunmi first, then USB) and only then shows the tabs.</li>
+      <li>Today a single address found after any Wi-Fi failure is printed to and saved with no prompt — even when the saved printer is just out of paper (PRN-D1).</li>
+      <li>The port isn't validated: <code>Number(port) || 9100</code>, no upper bound (PRN-D2).</li>
+      <li>The alert and the print screen open together; bill print errors use <code>Share Failed</code> (PRN-D2).</li>
+      <li><code>testPageHtml</code> still interpolates <code>${probe}</code>, so the page ends with <code>false</code> / <code>true</code> (PRN-D4).</li>
     </ul></div>
     <div class="card"><h3>Android native</h3><ul>
-      <li><code>WifiPrinterModule</code>: reachability is a plain TCP connect (3 × 5&nbsp;s), so any open port counts. There is one job queue, plus a separate scan pool (64 threads, 0.5&nbsp;s).</li>
-      <li>Status <code>-2</code> / <code>-4</code> → out of paper / cover open.</li>
+      <li><code>WifiPrinterModule</code>: reachability is a plain TCP connect (3 × 5&nbsp;s), so any open port counts; paper / cover via SDK status <code>-2</code> / <code>-4</code>; separate scan pool (64 threads, 0.5&nbsp;s).</li>
+      <li><code>SunmiPrinterModule</code>: binds Sunmi's service (3&nbsp;s), checks state, prints one buffered strip, feeds 3 lines, cuts, waits up to 30&nbsp;s.</li>
+      <li><code>UsbPrinterModule</code>: any printer-class USB device; asks for permission (waits 30&nbsp;s); ESC/POS raster + feed-and-cut; no paper / cover check.</li>
+      <li><code>ReceiptRaster</code>: shared rendering; widens narrow pages and joins pages for Sunmi / USB.</li>
       <li><code>PdfPrintModule</code> resolves when the dialog opens, never with the outcome.</li>
     </ul></div>
     <div class="card"><h3>POS API / Data — MySQL / Super-admin panel</h3><p>None.</p></div>
-    <div class="card"><h3>Integrations</h3><p>SPRT printer SDK (<code>com.printer.sdk</code>), <code>react-native-html-to-pdf</code>, <code>react-native-share</code> (iOS fallback).</p></div>
+    <div class="card"><h3>Integrations</h3><p>SPRT printer SDK (<code>com.printer.sdk</code>), Sunmi printer library (<code>com.sunmi.peripheral.printer</code>), <code>react-native-html-to-pdf</code>, <code>react-native-share</code> (iOS fallback).</p></div>
 
     <div class="card warn"><h3>Accepted risks (do not "fix" without a new decision)</h3><ul>
-      <li>PRN-D1: any listening device counts as a printer; silent switch and save after a failed print.</li>
-      <li>PRN-D2: no port check, alert and print screen together, outcome unknown, <code>Share Failed</code> title, no remove confirmation, iOS share sheet only.</li>
+      <li>PRN-D1 (part): <code>Search printers</code>, <code>Check connection</code> and <code>Test print</code> treat any open port as a printer; a tapped search result is saved.</li>
+      <li>PRN-D2 (part): unreachable <code>Invalid IP</code> alert; print screen outcome unknown; <code>Not reachable</code> chip for any failed Wi-Fi test; iOS share sheet only.</li>
       <li>PRN-D3: device-wide setting that survives sign-out and restaurant changes; chefs have no screen.</li>
+      <li>PRN-D4 (part): no USB paper / cover check; 30&nbsp;s USB permission wait during a print; a vanished built-in printer fails each print.</li>
+    </ul></div>
+
+    <div class="card"><h3>To fix (work list)</h3><ul>
+      <li>PRN-D1: scan only for <code>E_UNREACHABLE</code> / <code>E_CONNECT</code>; never print elsewhere or save silently — offer <code>Print on &lt;ip&gt;</code> (≤ 3) and <code>Open print screen</code>; save only after a chosen print succeeds. Tests: 03-T06–T08.</li>
+      <li>PRN-D2: port 1–65535 with <code>Enter a port from 1 to 65535.</code>; print screen after the alert's <code>OK</code>; <code>Choose one on the Printer screen.</code>; bill print errors titled <code>Print Failed</code>; confirm <code>Remove printer?</code>. Tests: 01-T09, T10, 03-T05, T08, T13, T15.</li>
+      <li>PRN-D4: drop the stray <code>${probe}</code> from the test page. Tests: 02-T04, T11, T13.</li>
     </ul></div>
 
     <div class="meta">

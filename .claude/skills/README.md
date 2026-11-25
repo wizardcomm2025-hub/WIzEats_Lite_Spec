@@ -38,7 +38,7 @@ A few skills you may want next: an ADR-drafting skill, a feature-readme generato
 
 ## Using these skills from an implementation repo
 
-This folder is separate from the API repo (`C:\xampp82\htdocs\laravel-pos-api\api`) and the app (`D:\whizeats_Lite_Spec\frontend\POS_APP-kot`). Claude Code running in one of those repos only auto-discovers skills from that repo's own `.claude/` folder — not from `App-Specs/.claude/`. Two options:
+This folder is separate from the API repo (`C:\xampp82\htdocs\laravel-pos-api\api`) and the app (`D:\whizeats_Lite_Spec\frontend\POS_APP-kot`). Claude Code running in one of those repos only auto-discovers skills from that repo's own `.claude/` folder — not from this folder's `.claude/`. Two options:
 
 1. **Run spec work here (recommended).** Open the Claude Code session in `D:\whizeats_Lite_Spec\spec`; the skills auto-discover.
-2. **Manual invocation.** From an implementation repo, tell Claude to use the skill at `../App-Specs/.claude/skills/<name>/SKILL.md`.
+2. **Manual invocation.** From an implementation repo, tell Claude to use the skill at `D:\whizeats_Lite_Spec\spec\.claude\skills\<name>\SKILL.md`.

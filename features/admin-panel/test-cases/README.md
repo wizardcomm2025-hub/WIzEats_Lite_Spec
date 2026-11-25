@@ -2,7 +2,7 @@
 
 Rules: [conventions.md → Test cases](../../../conventions.md#test-cases-test-cases). Results go in `laravel-pos-api/api/specs/admin-panel/test-results.md`, never here.
 
-**Expected results describe today's behaviour**, as fixed by ADM-D1 to ADM-D3 and the inherited decisions ([README](../README.md#decisions)). No case is blocked. Tester cases use a desktop browser; developer cases send HTTP requests with a session cookie (and the CSRF token for POSTs).
+**Expected results follow the decision statuses** in the [README](../README.md#decisions) (re-synced 2026-11-24, rules in [conventions.md → Decision status](../../../conventions.md#decision-status)): ADM-D1 and ADM-D3 are accepted and asserted as they are; ADM-D2 is *To fix*, so its cases assert the **target** and are tagged `Fails until ADM-D2 is fixed`, with today's result in brackets. No case is blocked. Tester cases use a desktop browser; developer cases send HTTP requests with a session cookie (and the CSRF token for POSTs).
 
 ## Fixtures
 
@@ -16,9 +16,11 @@ The AUTH, ONB, ORD and RPT fixtures apply ([AUTH](../../auth/test-cases/README.m
 | ORDER-LIVE / ORDER-PAID | As in RPT: REST-A Takeaway orders today, `Paneer Tikka` × 2 each. ORDER-PAID billed with TOT-525 and paid (`orderStatus` 2, `grandTotal` 525.00) |
 | ORDER-OLD | As in HIST: a REST-A order with `created_at` moved to yesterday by SQL |
 | PAID-AT(x) | As in RPT: a paid REST-A order whose `created_at` is moved to `x` by SQL |
+| ITEMS-12 | 12 REST-A items sold today in paid orders, with quantities 12, 11, …, 1 |
+| ORDERS-30 | 30 REST-A Takeaway orders today (created through the API) |
 | SESS | A signed-in ADM-1 browser session (cookie `laravel_session` + `XSRF-TOKEN`), for the developer cases |
 
-`APP_DEBUG=false` unless a case says otherwise. "Today" means the UTC date (ADM-D2).
+`APP_DEBUG=false` unless a case says otherwise. "Today" means the IST date (target); today's results in brackets use the UTC date. Avoid running date-sensitive cases between 00:00 and 05:30 IST, when the two differ.
 
 ## Coverage matrix
 
@@ -35,12 +37,14 @@ The AUTH, ONB, ORD and RPT fixtures apply ([AUTH](../../auth/test-cases/README.m
 | 02 | AC4 details row | T04 | — |
 | 02 | AC5 page-only search (ADM-D3) | T05 | — |
 | 02 | Alt: `/dashboard`, page query, escaping | T06 | D02, D03, D04 |
-| 03 | AC1 / AC2 figures (ADM-D2) | T01, T02 | D01 |
-| 03 | AC3 / AC4 periods, UTC | T03, T04 | D02 |
-| 03 | Alt: unknown ID, unknown filter, dead buttons, sidebar, rank format | T05, T06, T07 | D03, D04, D05 |
-| 04 | AC1 / AC4 Order History | T01, T03 | D01 |
-| 04 | AC2 / AC3 Item History and sorting | T02, T04 | D02 |
-| 04 | Alt: header period, bad sort, untranslated headings | T05, T06 | D03, D04 |
+| 03 | AC1 / AC2 paid-only figures (target ADM-D2) | T01, T02 | D01 |
+| 03 | AC3 / AC4 periods in IST, true N days (target ADM-D2) | T03, T04 | D02 |
+| 03 | AC5 top 10, ranks `01`–`10` (target ADM-D2) | T08 | D06 |
+| 03 | Alt: subtitles, unknown ID, unknown filter, dead buttons, sidebar | T05, T06, T07 | D03, D04, D05 |
+| 04 | AC1 / AC4 Order History, period, IST, order number (target ADM-D2) | T01, T03, T05 | D01 |
+| 04 | AC2 / AC3 Item History paid-only and sorting | T02, T04 | D02 |
+| 04 | AC5 paging (target ADM-D2) | T07 | D05 |
+| 04 | Alt: bad sort (target ADM-D2), untranslated headings | T06 | D03, D04 |
 | 05 | AC1–AC3 language | T01, T02, T03 | D01 |
 | 05 | Alt: unsupported locale, Referer redirect, no sign-in (ADM-D1) | — | D02, D03 |
 
@@ -52,7 +56,7 @@ The AUTH, ONB, ORD and RPT fixtures apply ([AUTH](../../auth/test-cases/README.m
 | `POST /admin/logout` (01) | D04 | — | n/a¹ | n/a² | — | — | — | — | n/a³ | n/a | — | D04 |
 | `GET /admin`, `/dashboard` (02) | D02 | D08 | n/a¹ | n/a² | D05 (01) | D03 | — | — | n/a³ | D02 | D04 | D03 |
 | `GET /admin/analytics/{id}` (03) | D03 | D08 (01) | D03 | n/a² | D05 (01) | D03, D04 | D04 | — | n/a³ | D05 | D03 | D03 |
-| `GET /admin/orders`, `/items` (04) | D03 | — | D01 | n/a² | D05 (01) | D03 | — | — | n/a³ | D04 | D03 | D03 |
+| `GET /admin/orders`, `/items` (04) | D04 | — | D01 | n/a² | D05 (01) | D03, D05 | — | — | n/a³ | D04 | D03 | D03 |
 | `GET /set-locale/{locale}` (05) | D03 | — | n/a¹ | n/a² | — | D02 | — | — | n/a³ | D03 | D02 | D03 |
 
 1. Super admins see every restaurant by design (ADM-D1).

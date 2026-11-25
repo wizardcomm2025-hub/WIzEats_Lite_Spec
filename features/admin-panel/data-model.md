@@ -2,7 +2,7 @@
 
 Sources:
 
-- `db_script/tables/tables.sql`
+- `db_script/pos_stage.sql` (re-checked 2026-11-24: unchanged)
 - `app/Http/Controllers/Admin/AdminAuthController.php`, `AdminController.php` (`index`, `analytics`, `applyDateFilter`, `orderhistory`, `itemhistory`)
 - `config/auth.php`, `config/session.php`
 
@@ -26,6 +26,8 @@ Sessions are rows in `sessions` (driver `database`, lifetime 120 min). The remem
 
 ## Overview queries (all filtered by the restaurant and the period on `created_at`)
 
+Today's queries below. *Target (ADM-D2):* every figure, the chart, `Order Channel` and `Popular Items` add `orderStatus` = 2 (lines through their order); Avg = revenue ÷ paid orders; Popular Items `LIMIT 10`; the chart fills every IST date of the period.
+
 | Figure | Query |
 |---|---|
 | Total Revenue | `SUM(orders.grandTotal)` where `orderStatus` = 2 |
@@ -37,7 +39,7 @@ Sessions are rows in `sessions` (driver `database`, lifetime 120 min). The remem
 | Recent Orders | orders ⟕ `order_items`, grouped by order: `HEX(orderId)`, line count, `grandTotal`, `orderStatus = 2` → Paid; by `created_at` DESC, 10 |
 | Revenue chart | `DATE(created_at)`, `SUM(grandTotal)` where `orderStatus` = 2, by date |
 
-Periods (`applyDateFilter`, UTC):
+Periods (`applyDateFilter`, UTC today):
 
 | `filter` | Condition |
 |---|---|
@@ -46,7 +48,11 @@ Periods (`applyDateFilter`, UTC):
 | `7days` / `15days` / `30days` | `DATE(col) >= (now − n days)`, i.e. n + 1 calendar days |
 | anything else | no condition (all time) |
 
+*Target (ADM-D2):* IST days — `created_at >= <IST midnight of the first day, as UTC>` and `< <IST midnight after the last day, as UTC>`; `7days` / `15days` / `30days` = 7 / 15 / 30 calendar days including today; anything else = `today`.
+
 ## Order History / Item History
+
+Today (below): today's UTC date only, no paging. *Target (ADM-D2):* the period of `filter` (IST), 25 a page; Order History adds `orderNumber` and shows `created_at` in IST; Item History counts lines of paid orders only, default sort `quantity` DESC, and validates `sort_by` / `sort_order`.
 
 - Orders where `DATE(created_at)` = today (UTC), newest first. Columns: `HEX(orderId)`, `channelName`, `grandTotal`, Paid = `orderStatus = 2`, `created_at`.
 - Lines where `DATE(created_at)` = today, grouped by `menuItemName`: `SUM(quantity)`, `SUM(total)`, `MAX(orderItemId)`.

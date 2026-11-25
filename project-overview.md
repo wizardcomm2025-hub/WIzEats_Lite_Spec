@@ -16,7 +16,7 @@ WhizEats POS Lite (the app is branded **Wizard POS**) is a multi-restaurant **po
 - WhizEats POS Lite is for small restaurants in India. Amounts are in ₹, restaurants record GST and FSSAI numbers, and payment is cash or UPI.
 - Owners register, are approved by a super admin, and set up tables, rooms and the menu.
 - Waiters take dine-in, takeaway, room-service and delivery orders and send KOTs; chefs move KOTs through the kitchen.
-- Staff bill, take cash or UPI, and print on a Wi-Fi thermal printer; owners see reports.
+- Staff bill, take cash or UPI, and print on a Wi-Fi thermal printer, a Sunmi terminal's built-in printer or a USB receipt printer; owners see reports.
 
 Pricing and plans: none in the code. If they're needed, they will be recorded as a new decision.
 
@@ -172,6 +172,33 @@ Cross-cutting decisions, `X-Dn`, decided 2026-11-24 (first listed 2026-11-05 as 
 | **X-D10** | To fix (changed 2026-11-24, was Accepted) | **Public order trusts the client.** `/api/public/order` takes `restaurantId`, `items.*.price` and totals from the body, with no check against `menu_items`. No UI calls it. | The server takes names and prices from the menu and checks items, channel, table / room and the restaurant's state — see [PUB-D2](./features/public-order/README.md#decisions). |
 | **X-D11** | Accepted | **Unused handler.** `app/Exceptions/Handler.php` is not wired in Laravel 12; `bootstrap/app.php` decides the 401 body. | — Informational. |
 
+### Bug-fix index (all features, 2026-11-24)
+
+Every feature decision by status, so a developer can pick the work. The details — *Today*, *Target*, tests — are in each feature README's **Decisions**. Tests of a *To fix* item carry `Fails until <ID> is fixed`.
+
+| Feature | To fix | Fixed (code or app) | Accepted |
+|---|---|---|---|
+| [AUTH](./features/auth/README.md#decisions) | D2 (X-D2), D5 (X-D5), D7, D10 (X-D9), D11 | — | D1, D3, D4, D6, D8, D9 |
+| [ONB](./features/onboarding/README.md#decisions) | D1, D2 | — | D3, D4 |
+| [RST](./features/restaurant-settings/README.md#decisions) | D2, D3, D4, D5, D6 | D1 | — |
+| [STAFF](./features/staff/README.md#decisions) | D2, D3, D5, D6 | D1 | D4 |
+| [TBL](./features/tables/README.md#decisions) | D2, D3, D4, D5 | D1 | — |
+| [ROOM](./features/rooms/README.md#decisions) | D2, D3, D4, D5, D6 | D1 | — |
+| [MENU](./features/menu/README.md#decisions) | D3, D4, D5, D6 | D1, D2 | — |
+| [IMPEX](./features/import-export/README.md#decisions) | D2, D3 | — | D1 |
+| [ORD](./features/orders/README.md#decisions) | D1, D3, D4 | D2 | — |
+| [KITCH](./features/kitchen/README.md#decisions) | D1, D2, D3 | — | — |
+| [WAIT](./features/waiter/README.md#decisions) | D1, D2, D3 | — | — |
+| [DLV](./features/delivery/README.md#decisions) | D1, D2, D3 | — | D4 |
+| [BILL](./features/billing/README.md#decisions) | D1, D3 | D2 | — |
+| [HIST](./features/order-history/README.md#decisions) | D2, D3 | D1 | — |
+| [RPT](./features/reports/README.md#decisions) | D1, D2, D3 (each partly fixed 2026-11-18 / 19) | — | — |
+| [PUB](./features/public-order/README.md#decisions) | D1, D2 (X-D10), D3 | — | — |
+| [PRN](./features/printer/README.md#decisions) | D1, D2, D4 | — | D3 |
+| [ADM](./features/admin-panel/README.md#decisions) | D2 | — | D1, D3 |
+
+Cross-cutting *To fix*: X-D1, X-D2, X-D4, X-D5, X-D7, X-D8, X-D9, X-D10 (table above). Suggested order: the shared layers first (X-D2 in the tenant middleware, X-D1 role checks, X-D4 / X-D5 error handling), because most feature decisions cite them. When a decision is fixed, update its status here and in the feature README in the same change ([conventions.md → Decision status](./conventions.md#decision-status)).
+
 ---
 
 ## Glossary
@@ -217,7 +244,7 @@ Cross-cutting decisions, `X-Dn`, decided 2026-11-24 (first listed 2026-11-05 as 
 | KOT number | A plain number per restaurant, with the same caveat (ORD-D3). The ticket's label is the restaurant's KOT display name (`kotDisplayName`, column default `kot`). |
 | Bill number | `max + 1` per restaurant per financial year (`financialYear` such as `2026-27`, April–March). It is a plain number with no prefix. There is no unique key; numbering relies on the lock on the config row (BILL-D3). It is assigned when the bill is generated, or when an unbilled order is paid. |
 | Payment types | The app sends `CASH` and `UPI`, or a split of both. The server accepts any text (BILL-D1). The UPI QR on Bill Payment is built from the restaurant's UPI ID (`restaurant_configs.qr`). Each payment gets `transactionId` `TXN-<12 random>` and `paymentStatus` `COMPLETED`. There is no card, wallet, void or refund. |
-| Paid | The order gets `paymentStatus` 1 and `orderStatus` 2, and the bill `billStatus` 1. Reports differ in which flag they read (RPT-D1, ADM-D2). |
+| Paid | The order gets `paymentStatus` 1 and `orderStatus` 2, and the bill `billStatus` 1. Reports differ in which flag they read today; target: the app's reports and the panel both count paid orders only (RPT-D1, ADM-D2). |
 
 ---
 
@@ -231,7 +258,7 @@ The super-admin web panel **is** in scope (decided 2026-11-12); its pages are sp
   - customer payment;
   - bill void and refund (BILL);
   - managing super-admin accounts (ADM).
-- **Printers:** Bluetooth or USB printers, and more than one printer per device (PRN).
+- **Printers:** Bluetooth printers, and more than one printer per device (PRN). (USB printers were added in the app in 2026-11 and are in scope.)
 - **Languages:** translating the POS app (English only).
 
 ---

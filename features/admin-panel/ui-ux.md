@@ -1,6 +1,6 @@
 # Super-admin panel — UI / UX
 
-Texts exactly as shown in English (2026-11-12). The Overview, sidebar and header also exist in `es`, `de`, `bn` (`lang/<locale>/analytics.php`).
+Texts exactly as shown in English (2026-11-12, re-checked 2026-11-24). *Target* marks ADM-D2 changes. The Overview, sidebar and header also exist in `es`, `de`, `bn` (`lang/<locale>/analytics.php`).
 
 ## 1. Sign-in page (`/`)
 
@@ -31,24 +31,26 @@ Texts exactly as shown in English (2026-11-12). The Overview, sidebar and header
 | Part | Text |
 |---|---|
 | Sidebar | `WizardComm` / `Analytics Dashboard`; `Overview`, `Order History`, `Item History`, `Zone Management`, `Table Management`, `Category Management`, `Item Management`, `Restaurant Settings`, `User Management` |
-| Header | `Dashboard Overview` / `Welcome back! Here's what's happening today.` (all three ADM pages); period dropdown `Today`, `Yesterday`, `Last 7 Days`, `Last 15 Days`, `Last 30 Days`; language `English`, `Español`, `Deutsch`, `বাংলা`; bell (dead); `Export Report` (dead); `Logout` |
+| Header | `Dashboard Overview` / `Welcome back! Here's what's happening today.` (all three ADM pages; *target:* `Welcome back! Here's what happened: <period>.`); period dropdown `Today`, `Yesterday`, `Last 7 Days`, `Last 15 Days`, `Last 30 Days`; language `English`, `Español`, `Deutsch`, `বাংলা`; bell (dead); `Export Report` (dead); `Logout` |
 
 ## 4. Overview
 
 | Block | Text |
 |---|---|
-| Figures | `Total Revenue` (`525.00`), `Total Orders`, `Total Items Sold`, `Avg Order Value` (`₹262.50`) |
-| Revenue chart | `Revenue Overview` / `Daily revenue for the current month`; dataset `Revenue` |
+| Figures | `Total Revenue` (`525.00`; *target* `₹525.00`), `Total Orders`, `Total Items Sold`, `Avg Order Value` (`₹262.50`) |
+| Revenue chart | `Revenue Overview` / `Daily revenue for the current month` (*target:* `Daily revenue — <period>`); dataset `Revenue` |
 | Channels | `Order Channel` / `Distribution of order channels`; centre `<n>` `Total Orders`; rows `<channel>` `<p>%` |
-| Popular | `Popular Items` / `Top performing menu items this week`; rows `0<rank>`, name, `<qty> orders`, `₹<amount>` |
+| Popular | `Popular Items` / `Top performing menu items this week` (*target:* `Top performing menu items — <period>`); rows `0<rank>` (so `010` for 10; *target:* top 10, `01`–`10`), name, `<qty> orders`, `₹<amount>` |
 | Recent | `Recent Orders` / `Latest incoming orders`, `Live`; columns `Order ID`, `Items` (`<n> items`), `Total`, `Payment Status` (`Paid` / `Unpaid`) |
 
 ## 5. Order History / Item History (English only)
 
 | Page | Columns |
 |---|---|
-| Order History | `Order ID`, `Channel`, `Total Amount` (`₹ 525.00`), `Payment Status` (`Paid` green / `Unpaid` red), `Date & Time` (`12 Nov 2026, 08:30 AM`, UTC) |
-| Item History | `SL No`, `Item Name`, `Quantity` + sort arrow, `Amount` + sort arrow (`↕️` unsorted, `⬆️` asc, `⬇️` desc) |
+| Order History | `Order ID`, `Channel`, `Total Amount` (`₹ 525.00`), `Payment Status` (`Paid` green / `Unpaid` red), `Date & Time` (`12 Nov 2026, 08:30 AM`, UTC). *Target:* `Order No.` (`CODE-A/12`) first; time in IST; footer `Showing <a> to <b> of <n> results` with pagination |
+| Item History | `SL No`, `Item Name`, `Quantity` + sort arrow, `Amount` + sort arrow (`↕️` unsorted, `⬆️` asc, `⬇️` desc). *Target:* `⬇️` on `Quantity` by default; pagination as above |
+
+`<period>` = the dropdown label (`Today`, `Yesterday`, `Last 7 Days`, …). *Target:* on these two pages the header dropdown filters the page itself instead of opening the Overview.
 
 ## 6. German samples (for the tester cases)
 
